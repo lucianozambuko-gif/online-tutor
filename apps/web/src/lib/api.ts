@@ -1,10 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
+export type UserStatus = "PENDING_GUARDIAN_CONSENT" | "ACTIVE" | "SUSPENDED" | "DELETED";
+
 export interface CurrentUser {
   id: string;
   email: string;
   name: string;
   role: "STUDENT" | "TUTOR" | "ADMIN";
+  status: UserStatus;
 }
 
 export class ApiError extends Error {
@@ -40,7 +43,10 @@ export function register(data: {
   password: string;
   name: string;
   role: "STUDENT" | "TUTOR";
-}): Promise<{ user: CurrentUser }> {
+  dateOfBirth?: string;
+  guardianName?: string;
+  guardianEmail?: string;
+}): Promise<{ user: CurrentUser; guardianConsentLink?: string }> {
   return apiFetch("/auth/register", { method: "POST", body: JSON.stringify(data) });
 }
 

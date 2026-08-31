@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '../prisma/prisma-enums';
+import { Role, UserStatus } from '../prisma/prisma-enums';
 
 @Injectable()
 export class UsersService {
@@ -33,6 +33,8 @@ export class UsersService {
     passwordHash: string;
     name: string;
     role: Role;
+    dateOfBirth?: Date;
+    status?: UserStatus;
   }) {
     const user = await this.prisma.user.create({ data });
 

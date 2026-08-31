@@ -18,9 +18,9 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-    const { token, user } = await this.authService.register(dto);
+    const { token, user, guardianConsentLink } = await this.authService.register(dto);
     this.setAuthCookie(res, token);
-    return { user };
+    return { user, guardianConsentLink };
   }
 
   @Post('login')
@@ -46,7 +46,7 @@ export class AuthController {
       return { user: null };
     }
     return {
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role, status: user.status },
     };
   }
 

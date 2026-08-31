@@ -17,6 +17,7 @@ enum Role {
 }
 
 enum UserStatus {
+  PENDING_GUARDIAN_CONSENT
   ACTIVE
   SUSPENDED
   DELETED
@@ -72,6 +73,13 @@ enum PolicyType {
   SAFEGUARDING
   REFUND
   TUTOR_CODE_OF_CONDUCT
+  GUARDIAN_CONSENT
+}
+
+enum GuardianConsentStatus {
+  PENDING
+  CONSENTED
+  EXPIRED
 }
 
 enum DisputeStatus {
@@ -120,6 +128,8 @@ model User {
 
   auditLogs       AuditLog[]
   offlineSyncLogs OfflineSyncLog[]
+
+  guardianConsentRequest GuardianConsentRequest?
 }
 
 model StudentProfile {
@@ -130,6 +140,23 @@ model StudentProfile {
   subjectsOfInterest String[]
   guardianId         String?
   guardian           User?    @relation("Guardian", fields: [guardianId], references: [id])
+}
+
+// Created at signup for a student who is under 18. Holds the single-use token
+// a guardian uses to review and accept the guardian-consent policy on the
+// student's behalf; the student's account stays PENDING_GUARDIAN_CONSENT
+// until this is CONSENTED.
+model GuardianConsentRequest {
+  id            String                @id @default(cuid())
+  studentId     String                @unique
+  student       User                  @relation(fields: [studentId], references: [id])
+  guardianName  String
+  guardianEmail String
+  token         String                @unique
+  status        GuardianConsentStatus @default(PENDING)
+  createdAt     DateTime              @default(now())
+  expiresAt     DateTime
+  consentedAt   DateTime?
 }
 
 model TutorProfile {

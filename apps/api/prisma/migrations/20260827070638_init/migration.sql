@@ -2,7 +2,7 @@
 CREATE TYPE "Role" AS ENUM ('STUDENT', 'TUTOR', 'ADMIN');
 
 -- CreateEnum
-CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'DELETED');
+CREATE TYPE "UserStatus" AS ENUM ('PENDING_GUARDIAN_CONSENT', 'ACTIVE', 'SUSPENDED', 'DELETED');
 
 -- CreateEnum
 CREATE TYPE "VerificationStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
@@ -26,7 +26,10 @@ CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'REFUNDED', 'FAILED');
 CREATE TYPE "PayoutStatus" AS ENUM ('PENDING', 'PAID', 'FAILED');
 
 -- CreateEnum
-CREATE TYPE "PolicyType" AS ENUM ('TOS', 'PRIVACY', 'SAFEGUARDING', 'REFUND', 'TUTOR_CODE_OF_CONDUCT');
+CREATE TYPE "PolicyType" AS ENUM ('TOS', 'PRIVACY', 'SAFEGUARDING', 'REFUND', 'TUTOR_CODE_OF_CONDUCT', 'GUARDIAN_CONSENT');
+
+-- CreateEnum
+CREATE TYPE "GuardianConsentStatus" AS ENUM ('PENDING', 'CONSENTED', 'EXPIRED');
 
 -- CreateEnum
 CREATE TYPE "DisputeStatus" AS ENUM ('OPEN', 'UNDER_REVIEW', 'RESOLVED', 'REJECTED');
@@ -58,6 +61,21 @@ CREATE TABLE "StudentProfile" (
     "guardianId" TEXT,
 
     CONSTRAINT "StudentProfile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GuardianConsentRequest" (
+    "id" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "guardianName" TEXT NOT NULL,
+    "guardianEmail" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "status" "GuardianConsentStatus" NOT NULL DEFAULT 'PENDING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "consentedAt" TIMESTAMP(3),
+
+    CONSTRAINT "GuardianConsentRequest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -241,6 +259,12 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "StudentProfile_userId_key" ON "StudentProfile"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "GuardianConsentRequest_studentId_key" ON "GuardianConsentRequest"("studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GuardianConsentRequest_token_key" ON "GuardianConsentRequest"("token");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "TutorProfile_userId_key" ON "TutorProfile"("userId");
 
 -- CreateIndex
@@ -263,6 +287,9 @@ ALTER TABLE "StudentProfile" ADD CONSTRAINT "StudentProfile_userId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "StudentProfile" ADD CONSTRAINT "StudentProfile_guardianId_fkey" FOREIGN KEY ("guardianId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GuardianConsentRequest" ADD CONSTRAINT "GuardianConsentRequest_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TutorProfile" ADD CONSTRAINT "TutorProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
