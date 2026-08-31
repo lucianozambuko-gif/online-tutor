@@ -57,3 +57,77 @@ export function logout(): Promise<{ success: boolean }> {
 export function fetchCurrentUser(): Promise<{ user: CurrentUser | null }> {
   return apiFetch("/auth/me");
 }
+
+export interface TutorSummary {
+  id: string;
+  name: string;
+  tutorProfile: {
+    subjects: string[];
+    hourlyRate: string;
+    bio: string | null;
+    avgRating: string | null;
+    verificationStatus: string;
+  };
+}
+
+export function listTutors(): Promise<TutorSummary[]> {
+  return apiFetch("/tutors");
+}
+
+export function updateOwnTutorProfile(data: {
+  subjects?: string[];
+  qualifications?: string[];
+  bio?: string;
+  hourlyRate?: number;
+}) {
+  return apiFetch("/tutors/me", { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export type BookingStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "DISPUTED";
+export type PaymentStatus = "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+
+export interface Booking {
+  id: string;
+  subject: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  mode: "ONLINE" | "IN_PERSON";
+  status: BookingStatus;
+  student: { id: string; name: string; email: string };
+  tutor: { id: string; name: string; email: string };
+  payment: { id: string; amount: string; status: PaymentStatus } | null;
+}
+
+export function createBooking(data: {
+  tutorId: string;
+  subject: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  mode: "ONLINE" | "IN_PERSON";
+}): Promise<Booking> {
+  return apiFetch("/bookings", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function listBookings(): Promise<Booking[]> {
+  return apiFetch("/bookings");
+}
+
+export function acceptBooking(id: string): Promise<Booking> {
+  return apiFetch(`/bookings/${id}/accept`, { method: "PATCH" });
+}
+
+export function declineBooking(id: string): Promise<Booking> {
+  return apiFetch(`/bookings/${id}/decline`, { method: "PATCH" });
+}
+
+export function cancelBooking(id: string): Promise<Booking> {
+  return apiFetch(`/bookings/${id}/cancel`, { method: "PATCH" });
+}
+
+export function completeBooking(id: string): Promise<Booking> {
+  return apiFetch(`/bookings/${id}/complete`, { method: "PATCH" });
+}
+
+export function initiatePayment(bookingId: string): Promise<{ actionUrl: string; fields: Record<string, string> }> {
+  return apiFetch(`/payments/${bookingId}/initiate`, { method: "POST" });
+}

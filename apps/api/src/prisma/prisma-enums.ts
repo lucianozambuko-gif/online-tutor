@@ -1,1 +1,10 @@
-export { Role, UserStatus, GuardianConsentStatus, PolicyType } from '../../generated/prisma/client';
+export {
+  Role,
+  UserStatus,
+  GuardianConsentStatus,
+  PolicyType,
+  BookingMode,
+  BookingStatus,
+  PaymentStatus,
+  PaymentMethod,
+} from '../../generated/prisma/client';
