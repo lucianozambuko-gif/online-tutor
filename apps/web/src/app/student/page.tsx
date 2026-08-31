@@ -1,7 +1,9 @@
+import { PortalHeader } from "@/components/portal-header";
+
 export default function StudentDashboard() {
   return (
     <main>
-      <h1>Student dashboard</h1>
+      <PortalHeader title="Student dashboard" />
     </main>
   );
 }

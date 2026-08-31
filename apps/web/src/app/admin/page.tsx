@@ -1,7 +1,9 @@
+import { PortalHeader } from "@/components/portal-header";
+
 export default function AdminDashboard() {
   return (
     <main>
-      <h1>Admin dashboard</h1>
+      <PortalHeader title="Admin dashboard" />
     </main>
   );
 }
