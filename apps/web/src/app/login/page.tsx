@@ -2,12 +2,17 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { login, ApiError } from "@/lib/api";
+import { AuthShell } from "@/components/auth-shell";
+import { Field, inputClass, buttonClass, ErrorText } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
 
 const PORTAL_ROOT = { STUDENT: "/student", TUTOR: "/tutor", ADMIN: "/admin" } as const;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,9 +25,9 @@ export default function LoginPage() {
 
     try {
       const { user } = await login(email, password);
+      await refresh();
       const next = new URLSearchParams(window.location.search).get("next");
       router.push(next ?? PORTAL_ROOT[user.role]);
-      router.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");
     } finally {
@@ -31,37 +36,39 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
-      <h1>Log in</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email</label>
+    <AuthShell title="Welcome back" subtitle="Log in to continue to your dashboard.">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Field label="Email" htmlFor="email">
           <input
             id="email"
             type="email"
             required
+            className={inputClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-        </div>
-        <div>
-          <label htmlFor="password">Password</label>
+        </Field>
+        <Field label="Password" htmlFor="password">
           <input
             id="password"
             type="password"
             required
+            className={inputClass}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-        </div>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={submitting}>
+        </Field>
+        {error && <ErrorText>{error}</ErrorText>}
+        <button type="submit" disabled={submitting} className={buttonClass("primary", "w-full")}>
           {submitting ? "Logging in..." : "Log in"}
         </button>
       </form>
-      <p>
-        No account? <a href="/register">Register</a>
+      <p className="mt-6 text-center text-sm text-ink-500">
+        No account?{" "}
+        <Link href="/register" className="font-medium text-sky-700 hover:text-sky-800">
+          Register
+        </Link>
       </p>
-    </main>
+    </AuthShell>
   );
 }

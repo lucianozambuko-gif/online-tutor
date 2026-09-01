@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, UserStatus } from '../prisma/prisma-enums';
 
@@ -54,5 +54,22 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  // Soft delete: flips status to DELETED rather than removing the row, since
+  // Bookings/Payments/Messages etc. reference the user and a hard delete would
+  // either fail on the foreign key or destroy that history. login() already
+  // rejects DELETED accounts, so this alone is enough to lock the account out.
+  async softDelete(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { status: UserStatus.DELETED },
+      select: { id: true, email: true, name: true, role: true, status: true, createdAt: true },
+    });
   }
 }

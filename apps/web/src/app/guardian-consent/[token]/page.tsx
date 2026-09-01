@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { AuthShell } from "@/components/auth-shell";
+import { buttonClass, ErrorText } from "@/components/ui";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -48,49 +50,66 @@ export default function GuardianConsentPage({ params }: PageProps<"/guardian-con
     }
   }
 
-  if (loading) return <main>Loading...</main>;
-  if (error) return <main><p role="alert">{error}</p></main>;
+  if (loading) {
+    return (
+      <AuthShell title="Guardian consent">
+        <p className="text-sm text-ink-500">Loading...</p>
+      </AuthShell>
+    );
+  }
+
+  if (error && !details) {
+    return (
+      <AuthShell title="Guardian consent">
+        <ErrorText>{error}</ErrorText>
+      </AuthShell>
+    );
+  }
+
   if (!details) return null;
 
   if (accepted || details.status === "CONSENTED") {
     return (
-      <main>
-        <h1>Consent recorded</h1>
-        <p>
-          Thank you — you&apos;ve given consent for {details.studentName} to use the platform. They
-          can now sign in normally.
+      <AuthShell title="Consent recorded">
+        <p className="text-sm leading-relaxed text-ink-500">
+          Thank you — you&apos;ve given consent for <strong className="text-ink-900">{details.studentName}</strong>{" "}
+          to use the platform. They can now sign in normally.
         </p>
-      </main>
+      </AuthShell>
     );
   }
 
   if (details.status === "EXPIRED") {
     return (
-      <main>
-        <h1>Link expired</h1>
-        <p>This consent link has expired. Please ask {details.studentName} to register again.</p>
-      </main>
+      <AuthShell title="Link expired">
+        <p className="text-sm leading-relaxed text-ink-500">
+          This consent link has expired. Please ask {details.studentName} to register again.
+        </p>
+      </AuthShell>
     );
   }
 
   return (
-    <main>
-      <h1>Guardian consent</h1>
-      <p>
-        {details.studentName} has registered as a student on this platform and is under 18. As
-        their parent/guardian ({details.guardianName}), your consent is required before they can
-        use it.
+    <AuthShell title="Guardian consent" wide>
+      <p className="text-sm leading-relaxed text-ink-500">
+        <strong className="text-ink-900">{details.studentName}</strong> has registered as a student
+        on this platform and is under 18. As their parent/guardian ({details.guardianName}), your
+        consent is required before they can use it.
       </p>
-      <p>
+      <p className="mt-4 text-sm leading-relaxed text-ink-500">
         By consenting, you confirm you are {details.studentName}&apos;s parent or legal guardian,
         you agree to the platform&apos;s safeguarding policy, and you understand that in-app
         messages between {details.studentName} and their tutor are logged and may be reviewed by
         platform admins for safeguarding purposes.
       </p>
-      {error && <p role="alert">{error}</p>}
-      <button type="button" onClick={handleAccept} disabled={submitting}>
+      {error && (
+        <div className="mt-4">
+          <ErrorText>{error}</ErrorText>
+        </div>
+      )}
+      <button type="button" onClick={handleAccept} disabled={submitting} className={buttonClass("primary", "mt-6 w-full")}>
         {submitting ? "Submitting..." : "I consent"}
       </button>
-    </main>
+    </AuthShell>
   );
 }

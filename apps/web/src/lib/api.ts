@@ -131,3 +131,20 @@ export function completeBooking(id: string): Promise<Booking> {
 export function initiatePayment(bookingId: string): Promise<{ actionUrl: string; fields: Record<string, string> }> {
   return apiFetch(`/payments/${bookingId}/initiate`, { method: "POST" });
 }
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: "STUDENT" | "TUTOR" | "ADMIN";
+  status: UserStatus;
+  createdAt: string;
+}
+
+export function listUsers(): Promise<AdminUser[]> {
+  return apiFetch("/users");
+}
+
+export function deleteUser(id: string): Promise<AdminUser> {
+  return apiFetch(`/users/${id}`, { method: "DELETE" });
+}

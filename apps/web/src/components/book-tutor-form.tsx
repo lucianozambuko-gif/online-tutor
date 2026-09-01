@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { createBooking, listTutors, ApiError, type TutorSummary } from "@/lib/api";
+import { Card, Field, inputClass, buttonClass, ErrorText } from "@/components/ui";
 
 export function BookTutorForm({ onBooked }: { onBooked: () => void }) {
   const [tutors, setTutors] = useState<TutorSummary[]>([]);
@@ -44,62 +45,67 @@ export function BookTutorForm({ onBooked }: { onBooked: () => void }) {
     }
   }
 
-  if (tutors.length === 0) {
-    return <p>No tutors available to book yet.</p>;
-  }
-
   return (
-    <section>
-      <h2>Book a tutor</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="tutorId">Tutor</label>
-          <select id="tutorId" value={tutorId} onChange={(e) => setTutorId(e.target.value)}>
-            {tutors.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} — {t.tutorProfile.subjects.join(", ")} (R{t.tutorProfile.hourlyRate}/hr)
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="subject">Subject</label>
-          <input id="subject" required value={subject} onChange={(e) => setSubject(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="scheduledAt">Date &amp; time</label>
-          <input
-            id="scheduledAt"
-            type="datetime-local"
-            required
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="durationMinutes">Duration (minutes)</label>
-          <input
-            id="durationMinutes"
-            type="number"
-            min={15}
-            step={15}
-            required
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(Number(e.target.value))}
-          />
-        </div>
-        <div>
-          <label htmlFor="mode">Mode</label>
-          <select id="mode" value={mode} onChange={(e) => setMode(e.target.value as "ONLINE" | "IN_PERSON")}>
-            <option value="ONLINE">Online</option>
-            <option value="IN_PERSON">In person</option>
-          </select>
-        </div>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Booking..." : "Book session"}
-        </button>
-      </form>
-    </section>
+    <Card>
+      <h2 className="font-display text-lg font-semibold text-ink-900">Book a tutor</h2>
+      {tutors.length === 0 ? (
+        <p className="mt-4 text-sm text-ink-500">No tutors available to book yet.</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-5 grid gap-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Field label="Tutor" htmlFor="tutorId">
+              <select id="tutorId" className={inputClass} value={tutorId} onChange={(e) => setTutorId(e.target.value)}>
+                {tutors.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} — {t.tutorProfile.subjects.join(", ")} (R{t.tutorProfile.hourlyRate}/hr)
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Subject" htmlFor="subject">
+            <input id="subject" required className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </Field>
+          <Field label="Date & time" htmlFor="scheduledAt">
+            <input
+              id="scheduledAt"
+              type="datetime-local"
+              required
+              className={inputClass}
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+            />
+          </Field>
+          <Field label="Duration (minutes)" htmlFor="durationMinutes">
+            <input
+              id="durationMinutes"
+              type="number"
+              min={15}
+              step={15}
+              required
+              className={inputClass}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(Number(e.target.value))}
+            />
+          </Field>
+          <Field label="Mode" htmlFor="mode">
+            <select id="mode" className={inputClass} value={mode} onChange={(e) => setMode(e.target.value as "ONLINE" | "IN_PERSON")}>
+              <option value="ONLINE">Online</option>
+              <option value="IN_PERSON">In person</option>
+            </select>
+          </Field>
+          {error && (
+            <div className="sm:col-span-2">
+              <ErrorText>{error}</ErrorText>
+            </div>
+          )}
+          <div className="sm:col-span-2">
+            <button type="submit" disabled={submitting} className={buttonClass("primary")}>
+              {submitting ? "Booking..." : "Book session"}
+            </button>
+          </div>
+        </form>
+      )}
+    </Card>
   );
 }
