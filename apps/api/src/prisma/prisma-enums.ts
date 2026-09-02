@@ -7,4 +7,5 @@ export {
   BookingStatus,
   PaymentStatus,
   PaymentMethod,
+  AiMessageRole,
 } from '../../generated/prisma/client';

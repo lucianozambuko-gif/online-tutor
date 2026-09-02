@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BookTutorForm } from "@/components/book-tutor-form";
 import { BookingsList } from "@/components/bookings-list";
+import { AiHelperChat } from "@/components/ai-helper-chat";
 import { useAuth } from "@/lib/auth-context";
 
 export default function StudentDashboard() {
@@ -27,6 +28,7 @@ export default function StudentDashboard() {
 
       {!loading && user?.status === "ACTIVE" && (
         <>
+          <AiHelperChat />
           <BookTutorForm onBooked={() => setRefreshKey((k) => k + 1)} />
           <BookingsList key={refreshKey} role="STUDENT" />
         </>

@@ -8,6 +8,7 @@ import { GuardianConsentModule } from './guardian-consent/guardian-consent.modul
 import { TutorsModule } from './tutors/tutors.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PaymentsModule } from './payments/payments.module';
     TutorsModule,
     BookingsModule,
     PaymentsModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -148,3 +148,18 @@ export function listUsers(): Promise<AdminUser[]> {
 export function deleteUser(id: string): Promise<AdminUser> {
   return apiFetch(`/users/${id}`, { method: "DELETE" });
 }
+
+export interface AiMessage {
+  id: string;
+  role: "USER" | "ASSISTANT";
+  content: string;
+  createdAt: string;
+}
+
+export function listAiMessages(): Promise<AiMessage[]> {
+  return apiFetch("/ai/messages");
+}
+
+export function sendAiMessage(content: string): Promise<AiMessage> {
+  return apiFetch("/ai/messages", { method: "POST", body: JSON.stringify({ content }) });
+}
