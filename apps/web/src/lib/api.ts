@@ -163,3 +163,132 @@ export function listAiMessages(): Promise<AiMessage[]> {
 export function sendAiMessage(content: string): Promise<AiMessage> {
   return apiFetch("/ai/messages", { method: "POST", body: JSON.stringify({ content }) });
 }
+
+export interface Note {
+  id: string;
+  topic: string;
+  subject: string | null;
+  content: string;
+  createdAt: string;
+}
+
+export function generateNote(data: { topic: string; subject?: string; sourceText?: string }): Promise<Note> {
+  return apiFetch("/notes/generate", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function listNotes(): Promise<Note[]> {
+  return apiFetch("/notes");
+}
+
+export function getNote(id: string): Promise<Note> {
+  return apiFetch(`/notes/${id}`);
+}
+
+export interface FlashcardCard {
+  id: string;
+  front: string;
+  back: string;
+}
+
+export interface FlashcardSet {
+  id: string;
+  topic: string;
+  createdAt: string;
+  cards: FlashcardCard[];
+}
+
+export interface FlashcardSetSummary {
+  id: string;
+  topic: string;
+  createdAt: string;
+  _count: { cards: number };
+}
+
+export function generateFlashcards(data: { topic?: string; noteId?: string; count?: number }): Promise<FlashcardSet> {
+  return apiFetch("/flashcards/generate", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function listFlashcardSets(): Promise<FlashcardSetSummary[]> {
+  return apiFetch("/flashcards");
+}
+
+export function getFlashcardSet(id: string): Promise<FlashcardSet> {
+  return apiFetch(`/flashcards/${id}`);
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  answerIndex: number;
+  explanation: string;
+}
+
+export interface Quiz {
+  id: string;
+  topic: string;
+  difficulty: string | null;
+  createdAt: string;
+  attempted: boolean;
+  score: number | null;
+  totalQuestions: number | null;
+  questions: QuizQuestion[];
+}
+
+export interface QuizSummary {
+  id: string;
+  topic: string;
+  createdAt: string;
+  attempted: boolean;
+  score: number | null;
+  totalQuestions: number | null;
+  _count: { questions: number };
+}
+
+export function generateQuiz(data: {
+  topic?: string;
+  noteId?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  count?: number;
+}): Promise<Quiz> {
+  return apiFetch("/quizzes/generate", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function listQuizzes(): Promise<QuizSummary[]> {
+  return apiFetch("/quizzes");
+}
+
+export function getQuiz(id: string): Promise<Quiz> {
+  return apiFetch(`/quizzes/${id}`);
+}
+
+export function submitQuiz(id: string, answers: number[]): Promise<Quiz> {
+  return apiFetch(`/quizzes/${id}/submit`, { method: "POST", body: JSON.stringify({ answers }) });
+}
+
+export interface DashboardSummary {
+  notes: { count: number; recent: { id: string; topic: string; subject: string | null; createdAt: string }[] };
+  flashcards: {
+    count: number;
+    recent: { id: string; topic: string; createdAt: string; _count: { cards: number } }[];
+  };
+  quizzes: {
+    count: number;
+    recent: {
+      id: string;
+      topic: string;
+      createdAt: string;
+      attempted: boolean;
+      score: number | null;
+      totalQuestions: number | null;
+    }[];
+  };
+  lessons: {
+    count: number;
+    upcoming: { id: string; subject: string; scheduledAt: string; tutor: { id: string; name: string } }[];
+  };
+}
+
+export function getStudentDashboard(): Promise<DashboardSummary> {
+  return apiFetch("/dashboard/student");
+}

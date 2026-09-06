@@ -54,6 +54,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Keeps anchor/scroll-into-view targets (e.g. #book-a-tutor, #my-bookings)
+     from landing underneath the sticky portal header. */
+  scroll-padding-top: 5rem;
 }
 
 body {

@@ -132,6 +132,10 @@ model User {
   guardianConsentRequest GuardianConsentRequest?
 
   aiConversation AiConversation?
+
+  notes         Note[]
+  flashcardSets FlashcardSet[]
+  quizzes       Quiz[]
 }
 
 // One persistent AI-helper thread per student (not per booking) — kept
@@ -158,6 +162,67 @@ model AiMessage {
 enum AiMessageRole {
   USER
   ASSISTANT
+}
+
+// AI-generated study notes a student asked for — optionally grounded in
+// source text they pasted in (lecture notes, a textbook excerpt, etc.).
+model Note {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id])
+  topic      String
+  subject    String?
+  content    String
+  sourceType String?
+  createdAt  DateTime @default(now())
+
+  flashcardSets FlashcardSet[]
+  quizzes       Quiz[]
+}
+
+model FlashcardSet {
+  id        String      @id @default(cuid())
+  studentId String
+  student   User        @relation(fields: [studentId], references: [id])
+  noteId    String?
+  note      Note?       @relation(fields: [noteId], references: [id])
+  topic     String
+  createdAt DateTime    @default(now())
+  cards     Flashcard[]
+}
+
+model Flashcard {
+  id    String       @id @default(cuid())
+  setId String
+  set   FlashcardSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  front String
+  back  String
+}
+
+model Quiz {
+  id             String         @id @default(cuid())
+  studentId      String
+  student        User           @relation(fields: [studentId], references: [id])
+  topic          String
+  difficulty     String?
+  noteId         String?
+  note           Note?          @relation(fields: [noteId], references: [id])
+  createdAt      DateTime       @default(now())
+  attempted      Boolean        @default(false)
+  score          Int?
+  totalQuestions Int?
+  completedAt    DateTime?
+  questions      QuizQuestion[]
+}
+
+model QuizQuestion {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question    String
+  options     String[]
+  answerIndex Int
+  explanation String
 }
 
 model StudentProfile {
