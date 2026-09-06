@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingStatus } from '../prisma/prisma-enums';
 
@@ -41,7 +45,10 @@ export class TutorStudentsService {
         if (!entry.nextSession || booking.scheduledAt < entry.nextSession) {
           entry.nextSession = booking.scheduledAt;
         }
-      } else if (!entry.lastSession || booking.scheduledAt > entry.lastSession) {
+      } else if (
+        !entry.lastSession ||
+        booking.scheduledAt > entry.lastSession
+      ) {
         entry.lastSession = booking.scheduledAt;
       }
 

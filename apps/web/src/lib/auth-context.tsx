@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { fetchCurrentUser, logout as apiLogout, type CurrentUser } from "./api";
 
 interface AuthContextValue {
@@ -13,18 +14,15 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    try {
-      const { user } = await fetchCurrentUser();
-      setUser(user);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+  const refresh = useCallback(() => {
+    return fetchCurrentUser()
+      .then(({ user }) => setUser(user))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
   // AuthProvider lives above the route tree, so it doesn't remount (and this
@@ -38,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function logout() {
     await apiLogout();
     setUser(null);
-    window.location.href = "/login";
+    router.push("/login");
   }
 
   return <AuthContext.Provider value={{ user, loading, refresh, logout }}>{children}</AuthContext.Provider>;

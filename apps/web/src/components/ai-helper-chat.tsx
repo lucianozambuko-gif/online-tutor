@@ -51,7 +51,7 @@ export function AiHelperChat() {
     <Card>
       <h2 className="font-display text-lg font-semibold text-ink-900">Study helper</h2>
       <p className="mt-1 text-sm text-ink-500">
-        Ask about anything you're studying — it'll help you work through it, not just hand you the
+        Ask about anything you&apos;re studying — it&apos;ll help you work through it, not just hand you the
         answer.
       </p>
 

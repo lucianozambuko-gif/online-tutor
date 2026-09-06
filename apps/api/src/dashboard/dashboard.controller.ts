@@ -41,7 +41,9 @@ export class DashboardController {
       this.flashcardsService.recentSummary(user.sub),
       this.quizzesService.count(user.sub),
       this.quizzesService.recentSummary(user.sub),
-      this.prisma.booking.count({ where: { studentId: user.sub, scheduledAt: { gte: new Date() } } }),
+      this.prisma.booking.count({
+        where: { studentId: user.sub, scheduledAt: { gte: new Date() } },
+      }),
       this.prisma.booking.findMany({
         where: { studentId: user.sub, scheduledAt: { gte: new Date() } },
         orderBy: { scheduledAt: 'asc' },
@@ -65,36 +67,55 @@ export class DashboardController {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [pendingRequests, roster, upcomingCount, upcomingSessions, monthPayments, recentRequests] =
-      await Promise.all([
-        this.prisma.booking.count({ where: { tutorId: user.sub, status: BookingStatus.PENDING } }),
-        this.tutorStudentsService.roster(user.sub),
-        this.prisma.booking.count({
-          where: { tutorId: user.sub, status: BookingStatus.CONFIRMED, scheduledAt: { gte: new Date() } },
-        }),
-        this.prisma.booking.findMany({
-          where: { tutorId: user.sub, status: BookingStatus.CONFIRMED, scheduledAt: { gte: new Date() } },
-          orderBy: { scheduledAt: 'asc' },
-          take: 3,
-          include: { student: { select: { id: true, name: true } } },
-        }),
-        this.prisma.payment.findMany({
-          where: {
-            status: PaymentStatus.PAID,
-            booking: { tutorId: user.sub, status: BookingStatus.COMPLETED },
-            createdAt: { gte: startOfMonth },
-          },
-          select: { tutorPayoutAmount: true },
-        }),
-        this.prisma.booking.findMany({
-          where: { tutorId: user.sub, status: BookingStatus.PENDING },
-          orderBy: { scheduledAt: 'asc' },
-          take: 3,
-          include: { student: { select: { id: true, name: true } } },
-        }),
-      ]);
+    const [
+      pendingRequests,
+      roster,
+      upcomingCount,
+      upcomingSessions,
+      monthPayments,
+      recentRequests,
+    ] = await Promise.all([
+      this.prisma.booking.count({
+        where: { tutorId: user.sub, status: BookingStatus.PENDING },
+      }),
+      this.tutorStudentsService.roster(user.sub),
+      this.prisma.booking.count({
+        where: {
+          tutorId: user.sub,
+          status: BookingStatus.CONFIRMED,
+          scheduledAt: { gte: new Date() },
+        },
+      }),
+      this.prisma.booking.findMany({
+        where: {
+          tutorId: user.sub,
+          status: BookingStatus.CONFIRMED,
+          scheduledAt: { gte: new Date() },
+        },
+        orderBy: { scheduledAt: 'asc' },
+        take: 3,
+        include: { student: { select: { id: true, name: true } } },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          status: PaymentStatus.PAID,
+          booking: { tutorId: user.sub, status: BookingStatus.COMPLETED },
+          createdAt: { gte: startOfMonth },
+        },
+        select: { tutorPayoutAmount: true },
+      }),
+      this.prisma.booking.findMany({
+        where: { tutorId: user.sub, status: BookingStatus.PENDING },
+        orderBy: { scheduledAt: 'asc' },
+        take: 3,
+        include: { student: { select: { id: true, name: true } } },
+      }),
+    ]);
 
-    const earningsThisMonth = monthPayments.reduce((sum, p) => sum + Number(p.tutorPayoutAmount), 0);
+    const earningsThisMonth = monthPayments.reduce(
+      (sum, p) => sum + Number(p.tutorPayoutAmount),
+      0,
+    );
 
     return {
       requests: { count: pendingRequests, recent: recentRequests },

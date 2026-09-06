@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentStatus } from '../prisma/prisma-enums';
 import { generatePayfastSignature, getPayfastBaseUrl } from './payfast.util';
@@ -18,17 +24,23 @@ export class PaymentsService {
       throw new NotFoundException('Booking not found');
     }
     if (booking.studentId !== studentId) {
-      throw new ForbiddenException('Only the student who booked this session can pay for it');
+      throw new ForbiddenException(
+        'Only the student who booked this session can pay for it',
+      );
     }
     if (!booking.payment) {
       throw new NotFoundException('No payment record for this booking');
     }
     if (booking.payment.status !== PaymentStatus.PENDING) {
-      throw new BadRequestException(`Payment is already ${booking.payment.status.toLowerCase()}`);
+      throw new BadRequestException(
+        `Payment is already ${booking.payment.status.toLowerCase()}`,
+      );
     }
 
     const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
-    const apiPublicUrl = process.env.API_PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 3001}`;
+    const apiPublicUrl =
+      process.env.API_PUBLIC_URL ??
+      `http://localhost:${process.env.PORT ?? 3001}`;
     const [firstName, ...rest] = booking.student.name.split(' ');
 
     const fields: Record<string, string> = {
@@ -45,7 +57,10 @@ export class PaymentsService {
       item_name: `Tutoring session: ${booking.subject}`,
     };
 
-    const signature = generatePayfastSignature(fields, process.env.PAYFAST_PASSPHRASE);
+    const signature = generatePayfastSignature(
+      fields,
+      process.env.PAYFAST_PASSPHRASE,
+    );
 
     return {
       actionUrl: `${getPayfastBaseUrl()}/eng/process`,
@@ -55,16 +70,25 @@ export class PaymentsService {
 
   async handleNotify(body: Record<string, string>) {
     const { signature, ...rest } = body;
-    const expectedSignature = generatePayfastSignature(rest, process.env.PAYFAST_PASSPHRASE);
+    const expectedSignature = generatePayfastSignature(
+      rest,
+      process.env.PAYFAST_PASSPHRASE,
+    );
 
     if (signature !== expectedSignature) {
-      this.logger.warn(`PayFast ITN signature mismatch for m_payment_id=${body.m_payment_id}`);
+      this.logger.warn(
+        `PayFast ITN signature mismatch for m_payment_id=${body.m_payment_id}`,
+      );
       throw new BadRequestException('Invalid signature');
     }
 
-    const payment = await this.prisma.payment.findUnique({ where: { id: body.m_payment_id } });
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: body.m_payment_id },
+    });
     if (!payment) {
-      this.logger.warn(`PayFast ITN for unknown payment id=${body.m_payment_id}`);
+      this.logger.warn(
+        `PayFast ITN for unknown payment id=${body.m_payment_id}`,
+      );
       return { received: true };
     }
 
@@ -74,7 +98,10 @@ export class PaymentsService {
         data: { status: PaymentStatus.PAID, payfastRef: body.pf_payment_id },
       });
     } else if (body.payment_status === 'FAILED') {
-      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.FAILED } });
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: PaymentStatus.FAILED },
+      });
     }
 
     return { received: true };

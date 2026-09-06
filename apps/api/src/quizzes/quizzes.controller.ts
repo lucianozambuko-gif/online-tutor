@@ -31,7 +31,11 @@ export class QuizzesController {
   }
 
   @Post(':id/submit')
-  submit(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: SubmitQuizDto) {
+  submit(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: SubmitQuizDto,
+  ) {
     return this.quizzesService.submit(user.sub, id, dto);
   }
 }

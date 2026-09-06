@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { GroqService } from '../groq/groq.service';
+import { GroqService, type GroqMessage } from '../groq/groq.service';
 import { AiMessageRole } from '../prisma/prisma-enums';
 
 const SYSTEM_PROMPT = `You are a friendly, patient AI study helper on a South African online tutoring platform, for school and university students.
@@ -40,7 +40,11 @@ export class AiService {
     const conversation = await this.getConversation(studentId);
 
     await this.prisma.aiMessage.create({
-      data: { conversationId: conversation.id, role: AiMessageRole.USER, content },
+      data: {
+        conversationId: conversation.id,
+        role: AiMessageRole.USER,
+        content,
+      },
     });
 
     const allMessages = await this.prisma.aiMessage.findMany({
@@ -51,8 +55,8 @@ export class AiService {
 
     const replyText = await this.groq.chat([
       { role: 'system', content: SYSTEM_PROMPT },
-      ...recentHistory.map((m) => ({
-        role: (m.role === AiMessageRole.USER ? 'user' : 'assistant') as 'user' | 'assistant',
+      ...recentHistory.map((m): GroqMessage => ({
+        role: m.role === AiMessageRole.USER ? 'user' : 'assistant',
         content: m.content,
       })),
     ]);
@@ -61,7 +65,8 @@ export class AiService {
       data: {
         conversationId: conversation.id,
         role: AiMessageRole.ASSISTANT,
-        content: replyText || "Sorry, I couldn't come up with an answer to that.",
+        content:
+          replyText || "Sorry, I couldn't come up with an answer to that.",
       },
     });
   }

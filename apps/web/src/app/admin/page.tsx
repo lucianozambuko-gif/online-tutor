@@ -23,7 +23,6 @@ export default function AdminDashboard() {
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
 
   function load() {
-    setLoading(true);
     listUsers()
       .then(setUsers)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load users"))
@@ -31,7 +30,6 @@ export default function AdminDashboard() {
   }
 
   function loadPayouts() {
-    setPayoutsLoading(true);
     listAllPayouts()
       .then(setPayouts)
       .catch((err) => setPayoutError(err instanceof ApiError ? err.message : "Failed to load payouts"))
@@ -48,6 +46,7 @@ export default function AdminDashboard() {
       if (created.length === 0) {
         setPayoutError("No completed, paid sessions are waiting on a payout right now.");
       }
+      setPayoutsLoading(true);
       loadPayouts();
     } catch (err) {
       setPayoutError(err instanceof ApiError ? err.message : "Failed to run payout batch");
@@ -62,6 +61,7 @@ export default function AdminDashboard() {
     setPayoutError(null);
     try {
       await markPayoutPaid(payout.id);
+      setPayoutsLoading(true);
       loadPayouts();
     } catch (err) {
       setPayoutError(err instanceof ApiError ? err.message : "Failed to update payout");
@@ -78,6 +78,7 @@ export default function AdminDashboard() {
     setError(null);
     try {
       await deleteUser(u.id);
+      setLoading(true);
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to delete user");

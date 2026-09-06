@@ -1,4 +1,11 @@
-import { IsDateString, IsIn, IsInt, IsString, Min, MinLength } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsString,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { BookingMode } from '../../prisma/prisma-enums';
 
 export class CreateBookingDto {

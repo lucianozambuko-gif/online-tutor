@@ -1,4 +1,13 @@
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class GenerateQuizDto {
   @ValidateIf((o: GenerateQuizDto) => !o.noteId)

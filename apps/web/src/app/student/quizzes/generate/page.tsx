@@ -30,17 +30,17 @@ function GenerateQuizForm() {
   const [count, setCount] = useState(5);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingNotes, setLoadingNotes] = useState(false);
+  const [notesLoaded, setNotesLoaded] = useState(false);
+  const loadingNotes = mode === "note" && !notesLoaded;
 
   useEffect(() => {
-    if (mode === "note" && notes.length === 0) {
-      setLoadingNotes(true);
+    if (mode === "note" && !notesLoaded) {
       listNotes()
         .then(setNotes)
         .catch(() => setError("Couldn't load your notes."))
-        .finally(() => setLoadingNotes(false));
+        .finally(() => setNotesLoaded(true));
     }
-  }, [mode, notes.length]);
+  }, [mode, notesLoaded]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

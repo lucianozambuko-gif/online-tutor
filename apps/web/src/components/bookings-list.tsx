@@ -21,7 +21,6 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
   const [actingOn, setActingOn] = useState<string | null>(null);
 
   function load() {
-    setLoading(true);
     listBookings()
       .then(setBookings)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load bookings"))
@@ -35,6 +34,7 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
     setError(null);
     try {
       await action();
+      setLoading(true);
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");

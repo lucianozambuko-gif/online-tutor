@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroqService, truncateForContext } from '../groq/groq.service';
 import { GenerateFlashcardsDto } from './dto/generate-flashcards.dto';
@@ -22,7 +27,9 @@ export class FlashcardsService {
     let sourceText: string | undefined;
 
     if (dto.noteId) {
-      const note = await this.prisma.note.findFirst({ where: { id: dto.noteId, studentId } });
+      const note = await this.prisma.note.findFirst({
+        where: { id: dto.noteId, studentId },
+      });
       if (!note) throw new NotFoundException('Note not found');
       topic = note.topic;
       sourceText = truncateForContext(note.content);
@@ -49,7 +56,9 @@ export class FlashcardsService {
     // empty cards array — treat that as a failed generation rather than
     // silently creating (and the student opening) an empty set.
     if (!cards || cards.length === 0) {
-      throw new ServiceUnavailableException('No flashcards could be generated for that topic, try again.');
+      throw new ServiceUnavailableException(
+        'No flashcards could be generated for that topic, try again.',
+      );
     }
 
     return this.prisma.flashcardSet.create({
@@ -87,7 +96,12 @@ export class FlashcardsService {
       where: { studentId },
       orderBy: { createdAt: 'desc' },
       take,
-      select: { id: true, topic: true, createdAt: true, _count: { select: { cards: true } } },
+      select: {
+        id: true,
+        topic: true,
+        createdAt: true,
+        _count: { select: { cards: true } },
+      },
     });
   }
 

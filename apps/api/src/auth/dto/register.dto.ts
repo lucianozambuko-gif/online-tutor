@@ -1,4 +1,11 @@
-import { IsDateString, IsEmail, IsIn, IsString, MinLength, ValidateIf } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsString,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 import { Role } from '../../prisma/prisma-enums';
 import { calculateAge, MINOR_AGE_CUTOFF } from '../../common/age';
 
@@ -6,7 +13,11 @@ import { calculateAge, MINOR_AGE_CUTOFF } from '../../common/age';
 const SELF_REGISTERABLE_ROLES = [Role.STUDENT, Role.TUTOR] as const;
 
 function isMinorStudent(dto: RegisterDto): boolean {
-  return dto.role === Role.STUDENT && !!dto.dateOfBirth && calculateAge(new Date(dto.dateOfBirth)) < MINOR_AGE_CUTOFF;
+  return (
+    dto.role === Role.STUDENT &&
+    !!dto.dateOfBirth &&
+    calculateAge(new Date(dto.dateOfBirth)) < MINOR_AGE_CUTOFF
+  );
 }
 
 export class RegisterDto {

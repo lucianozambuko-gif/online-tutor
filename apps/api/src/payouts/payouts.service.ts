@@ -1,6 +1,14 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { BookingStatus, PaymentStatus, PayoutStatus } from '../prisma/prisma-enums';
+import {
+  BookingStatus,
+  PaymentStatus,
+  PayoutStatus,
+} from '../prisma/prisma-enums';
 import { MarkPayoutPaidDto } from './dto/mark-payout-paid.dto';
 
 @Injectable()
@@ -17,10 +25,16 @@ export class PayoutsService {
         },
         select: { tutorPayoutAmount: true },
       }),
-      this.prisma.payout.findMany({ where: { tutorId }, orderBy: { createdAt: 'desc' } }),
+      this.prisma.payout.findMany({
+        where: { tutorId },
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
 
-    const pendingAmount = pendingPayments.reduce((sum, p) => sum + Number(p.tutorPayoutAmount), 0);
+    const pendingAmount = pendingPayments.reduce(
+      (sum, p) => sum + Number(p.tutorPayoutAmount),
+      0,
+    );
     const lifetimePaid = payouts
       .filter((p) => p.status === PayoutStatus.PAID)
       .reduce((sum, p) => sum + Number(p.totalAmount), 0);
@@ -65,7 +79,10 @@ export class PayoutsService {
     const now = new Date();
     const created = await this.prisma.$transaction(
       Array.from(byTutor.entries()).map(([tutorId, payments]) => {
-        const totalAmount = payments.reduce((sum, p) => sum + Number(p.tutorPayoutAmount), 0);
+        const totalAmount = payments.reduce(
+          (sum, p) => sum + Number(p.tutorPayoutAmount),
+          0,
+        );
         const periodStart = payments.reduce(
           (min, p) => (p.createdAt < min ? p.createdAt : min),
           payments[0].createdAt,
@@ -99,7 +116,11 @@ export class PayoutsService {
 
     return this.prisma.payout.update({
       where: { id },
-      data: { status: PayoutStatus.PAID, paidAt: new Date(), reference: dto.reference },
+      data: {
+        status: PayoutStatus.PAID,
+        paidAt: new Date(),
+        reference: dto.reference,
+      },
       include: { tutor: { select: { id: true, name: true, email: true } } },
     });
   }

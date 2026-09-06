@@ -69,7 +69,14 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data: { status: UserStatus.DELETED },
-      select: { id: true, email: true, name: true, role: true, status: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
     });
   }
 }

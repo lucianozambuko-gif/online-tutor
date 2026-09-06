@@ -1,10 +1,14 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroqService } from '../groq/groq.service';
 import { GenerateTutorNoteDto } from './dto/generate-tutor-note.dto';
 
 const SYSTEM_PROMPT =
-  'You help tutors turn rough session notes into a clear, structured progress note about a student, for the tutor\'s own record-keeping. Use markdown headings and bullet points. Base the note strictly on the tutor\'s input — never invent facts about the student\'s performance or behaviour.';
+  "You help tutors turn rough session notes into a clear, structured progress note about a student, for the tutor's own record-keeping. Use markdown headings and bullet points. Base the note strictly on the tutor's input — never invent facts about the student's performance or behaviour.";
 
 @Injectable()
 export class TutorNotesService {
@@ -14,9 +18,13 @@ export class TutorNotesService {
   ) {}
 
   private async assertHasTutored(tutorId: string, studentId: string) {
-    const booking = await this.prisma.booking.findFirst({ where: { tutorId, studentId } });
+    const booking = await this.prisma.booking.findFirst({
+      where: { tutorId, studentId },
+    });
     if (!booking) {
-      throw new ForbiddenException('You can only write notes for students you have a booking with');
+      throw new ForbiddenException(
+        'You can only write notes for students you have a booking with',
+      );
     }
   }
 
@@ -35,7 +43,10 @@ export class TutorNotesService {
     const content = await this.groq.chat(
       [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Topic: ${dto.topic}\nTutor's rough notes:\n${dto.rawInput}` },
+        {
+          role: 'user',
+          content: `Topic: ${dto.topic}\nTutor's rough notes:\n${dto.rawInput}`,
+        },
       ],
       { maxTokens: 1000, temperature: 0.4 },
     );

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { PayoutsService } from './payouts.service';
 import { MarkPayoutPaidDto } from './dto/mark-payout-paid.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

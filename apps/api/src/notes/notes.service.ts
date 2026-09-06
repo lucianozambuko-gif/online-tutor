@@ -31,7 +31,9 @@ export class NotesService {
         studentId,
         topic: dto.topic,
         subject: dto.subject,
-        content: content || 'No notes could be generated for this topic — try rephrasing it.',
+        content:
+          content ||
+          'No notes could be generated for this topic — try rephrasing it.',
         sourceType: dto.sourceText ? 'TEXT' : null,
       },
     });

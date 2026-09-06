@@ -19,7 +19,10 @@ export class TutorStudentsController {
   }
 
   @Get(':studentId')
-  findOne(@CurrentUser() user: JwtPayload, @Param('studentId') studentId: string) {
+  findOne(
+    @CurrentUser() user: JwtPayload,
+    @Param('studentId') studentId: string,
+  ) {
     return this.tutorStudentsService.findOne(user.sub, studentId);
   }
 }

@@ -40,7 +40,9 @@ export class TutorsService {
   }
 
   async updateOwnProfile(userId: string, dto: UpdateTutorProfileDto) {
-    const profile = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    const profile = await this.prisma.tutorProfile.findUnique({
+      where: { userId },
+    });
     if (!profile) {
       throw new NotFoundException('Tutor profile not found');
     }

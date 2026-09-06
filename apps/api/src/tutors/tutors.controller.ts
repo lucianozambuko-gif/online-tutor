@@ -21,7 +21,10 @@ export class TutorsController {
   @Patch('me')
   @UseGuards(RolesGuard)
   @Roles(Role.TUTOR)
-  updateOwnProfile(@CurrentUser() user: JwtPayload, @Body() dto: UpdateTutorProfileDto) {
+  updateOwnProfile(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateTutorProfileDto,
+  ) {
     return this.tutorsService.updateOwnProfile(user.sub, dto);
   }
 

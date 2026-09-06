@@ -3,7 +3,9 @@ import { GuardianConsentService } from './guardian-consent.service';
 
 @Controller('guardian-consent')
 export class GuardianConsentController {
-  constructor(private readonly guardianConsentService: GuardianConsentService) {}
+  constructor(
+    private readonly guardianConsentService: GuardianConsentService,
+  ) {}
 
   @Get(':token')
   async find(@Param('token') token: string) {

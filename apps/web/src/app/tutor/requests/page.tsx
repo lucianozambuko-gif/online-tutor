@@ -21,7 +21,6 @@ export default function TutorRequestsPage() {
   const [actingOn, setActingOn] = useState<string | null>(null);
 
   function load() {
-    setLoading(true);
     listBookings()
       .then(setBookings)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load requests"))
@@ -35,6 +34,7 @@ export default function TutorRequestsPage() {
     setError(null);
     try {
       await action(id);
+      setLoading(true);
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");

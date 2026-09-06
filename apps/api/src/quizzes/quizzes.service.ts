@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroqService, truncateForContext } from '../groq/groq.service';
 import { GenerateQuizDto } from './dto/generate-quiz.dto';
@@ -26,7 +31,9 @@ export class QuizzesService {
     let sourceText: string | undefined;
 
     if (dto.noteId) {
-      const note = await this.prisma.note.findFirst({ where: { id: dto.noteId, studentId } });
+      const note = await this.prisma.note.findFirst({
+        where: { id: dto.noteId, studentId },
+      });
       if (!note) throw new NotFoundException('Note not found');
       topic = note.topic;
       sourceText = truncateForContext(note.content);
@@ -39,7 +46,9 @@ export class QuizzesService {
     const count = dto.count ?? 5;
     const difficulty = dto.difficulty ?? 'medium';
 
-    const { questions } = await this.groq.chatJson<{ questions: QuizQuestionDraft[] }>(
+    const { questions } = await this.groq.chatJson<{
+      questions: QuizQuestionDraft[];
+    }>(
       [
         { role: 'system', content: SYSTEM_PROMPT },
         {
@@ -51,7 +60,9 @@ export class QuizzesService {
     );
 
     if (!questions || questions.length === 0) {
-      throw new ServiceUnavailableException('No quiz questions could be generated for that topic, try again.');
+      throw new ServiceUnavailableException(
+        'No quiz questions could be generated for that topic, try again.',
+      );
     }
 
     return this.prisma.quiz.create({
@@ -87,14 +98,24 @@ export class QuizzesService {
     const quiz = await this.findOne(studentId, id);
 
     if (dto.answers.length !== quiz.questions.length) {
-      throw new BadRequestException('Answer count does not match question count');
+      throw new BadRequestException(
+        'Answer count does not match question count',
+      );
     }
 
-    const score = quiz.questions.reduce((acc, q, i) => acc + (q.answerIndex === dto.answers[i] ? 1 : 0), 0);
+    const score = quiz.questions.reduce(
+      (acc, q, i) => acc + (q.answerIndex === dto.answers[i] ? 1 : 0),
+      0,
+    );
 
     return this.prisma.quiz.update({
       where: { id },
-      data: { attempted: true, score, totalQuestions: quiz.questions.length, completedAt: new Date() },
+      data: {
+        attempted: true,
+        score,
+        totalQuestions: quiz.questions.length,
+        completedAt: new Date(),
+      },
       include: { questions: true },
     });
   }
@@ -104,7 +125,14 @@ export class QuizzesService {
       where: { studentId },
       orderBy: { createdAt: 'desc' },
       take,
-      select: { id: true, topic: true, createdAt: true, attempted: true, score: true, totalQuestions: true },
+      select: {
+        id: true,
+        topic: true,
+        createdAt: true,
+        attempted: true,
+        score: true,
+        totalQuestions: true,
+      },
     });
   }
 

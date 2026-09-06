@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { TutorNotesService } from './tutor-notes.service';
 import { GenerateTutorNoteDto } from './dto/generate-tutor-note.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,7 +28,10 @@ export class TutorNotesController {
   }
 
   @Get()
-  list(@CurrentUser() user: JwtPayload, @Query('studentId') studentId?: string) {
+  list(
+    @CurrentUser() user: JwtPayload,
+    @Query('studentId') studentId?: string,
+  ) {
     return this.tutorNotesService.list(user.sub, studentId);
   }
 

@@ -15,7 +15,10 @@ export class FlashcardsController {
   constructor(private readonly flashcardsService: FlashcardsService) {}
 
   @Post('generate')
-  generate(@CurrentUser() user: JwtPayload, @Body() dto: GenerateFlashcardsDto) {
+  generate(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: GenerateFlashcardsDto,
+  ) {
     return this.flashcardsService.generate(user.sub, dto);
   }
 

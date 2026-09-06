@@ -1,6 +1,17 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, BookingStatus, PaymentStatus, PaymentMethod } from '../prisma/prisma-enums';
+import {
+  Role,
+  BookingStatus,
+  PaymentStatus,
+  PaymentMethod,
+} from '../prisma/prisma-enums';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
 const DEFAULT_COMMISSION_PERCENT = 15;
@@ -35,8 +46,10 @@ export class BookingsService {
     }
 
     const hourlyRate = Number(tutor.tutorProfile.hourlyRate);
-    const amount = Math.round(hourlyRate * (dto.durationMinutes / 60) * 100) / 100;
-    const platformFee = Math.round(amount * (getCommissionPercent() / 100) * 100) / 100;
+    const amount =
+      Math.round(hourlyRate * (dto.durationMinutes / 60) * 100) / 100;
+    const platformFee =
+      Math.round(amount * (getCommissionPercent() / 100) * 100) / 100;
     const tutorPayoutAmount = Math.round((amount - platformFee) * 100) / 100;
 
     return this.prisma.booking.create({
@@ -64,7 +77,11 @@ export class BookingsService {
 
   findMine(userId: string, role: Role) {
     const where =
-      role === Role.STUDENT ? { studentId: userId } : role === Role.TUTOR ? { tutorId: userId } : {};
+      role === Role.STUDENT
+        ? { studentId: userId }
+        : role === Role.TUTOR
+          ? { tutorId: userId }
+          : {};
 
     return this.prisma.booking.findMany({
       where,
@@ -74,7 +91,10 @@ export class BookingsService {
   }
 
   async findOne(id: string, userId: string, role: Role) {
-    const booking = await this.prisma.booking.findUnique({ where: { id }, include: BOOKING_INCLUDE });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: BOOKING_INCLUDE,
+    });
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
@@ -85,10 +105,14 @@ export class BookingsService {
   async accept(id: string, tutorId: string) {
     const booking = await this.requireBooking(id);
     if (booking.tutorId !== tutorId) {
-      throw new ForbiddenException('Only the assigned tutor can accept this booking');
+      throw new ForbiddenException(
+        'Only the assigned tutor can accept this booking',
+      );
     }
     if (booking.status !== BookingStatus.PENDING) {
-      throw new ConflictException(`Booking is ${booking.status.toLowerCase()}, not pending`);
+      throw new ConflictException(
+        `Booking is ${booking.status.toLowerCase()}, not pending`,
+      );
     }
     return this.prisma.booking.update({
       where: { id },
@@ -100,10 +124,14 @@ export class BookingsService {
   async decline(id: string, tutorId: string) {
     const booking = await this.requireBooking(id);
     if (booking.tutorId !== tutorId) {
-      throw new ForbiddenException('Only the assigned tutor can decline this booking');
+      throw new ForbiddenException(
+        'Only the assigned tutor can decline this booking',
+      );
     }
     if (booking.status !== BookingStatus.PENDING) {
-      throw new ConflictException(`Booking is ${booking.status.toLowerCase()}, not pending`);
+      throw new ConflictException(
+        `Booking is ${booking.status.toLowerCase()}, not pending`,
+      );
     }
     // A student can pay before the tutor responds, so a payment may already be
     // sitting here — same guard/cleanup as cancel() to avoid an orphaned PAID
@@ -115,8 +143,13 @@ export class BookingsService {
     const booking = await this.requireBooking(id);
     this.assertParticipant(booking, userId, role);
 
-    if (booking.status === BookingStatus.COMPLETED || booking.status === BookingStatus.CANCELLED) {
-      throw new ConflictException(`Booking is already ${booking.status.toLowerCase()}`);
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      throw new ConflictException(
+        `Booking is already ${booking.status.toLowerCase()}`,
+      );
     }
     return this.cancelAndClosePayment(booking);
   }
@@ -126,10 +159,14 @@ export class BookingsService {
     this.assertParticipant(booking, userId, role);
 
     if (booking.status !== BookingStatus.CONFIRMED) {
-      throw new ConflictException('Only a confirmed booking can be marked complete');
+      throw new ConflictException(
+        'Only a confirmed booking can be marked complete',
+      );
     }
     if (booking.payment?.status !== PaymentStatus.PAID) {
-      throw new ConflictException('Payment must be completed before the session can be marked complete');
+      throw new ConflictException(
+        'Payment must be completed before the session can be marked complete',
+      );
     }
 
     // The tutor's payout is calculated on the Payment row at booking time; a
@@ -142,7 +179,9 @@ export class BookingsService {
     });
   }
 
-  private async cancelAndClosePayment(booking: Awaited<ReturnType<BookingsService['requireBooking']>>) {
+  private async cancelAndClosePayment(
+    booking: Awaited<ReturnType<BookingsService['requireBooking']>>,
+  ) {
     if (booking.payment?.status === PaymentStatus.PAID) {
       throw new ConflictException(
         'This booking is already paid for. Raise a dispute or contact an admin for a refund.',
@@ -151,7 +190,10 @@ export class BookingsService {
 
     return this.prisma.$transaction(async (tx) => {
       if (booking.payment && booking.payment.status === PaymentStatus.PENDING) {
-        await tx.payment.update({ where: { id: booking.payment.id }, data: { status: PaymentStatus.FAILED } });
+        await tx.payment.update({
+          where: { id: booking.payment.id },
+          data: { status: PaymentStatus.FAILED },
+        });
       }
       return tx.booking.update({
         where: { id: booking.id },
@@ -162,7 +204,10 @@ export class BookingsService {
   }
 
   private async requireBooking(id: string) {
-    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { payment: true } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: { payment: true },
+    });
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }

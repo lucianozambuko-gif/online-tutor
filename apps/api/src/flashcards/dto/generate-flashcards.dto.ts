@@ -1,4 +1,12 @@
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class GenerateFlashcardsDto {
   @ValidateIf((o: GenerateFlashcardsDto) => !o.noteId)
