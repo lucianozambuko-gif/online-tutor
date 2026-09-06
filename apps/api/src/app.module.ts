@@ -14,6 +14,9 @@ import { NotesModule } from './notes/notes.module';
 import { FlashcardsModule } from './flashcards/flashcards.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { TutorNotesModule } from './tutor-notes/tutor-notes.module';
+import { TutorStudentsModule } from './tutor-students/tutor-students.module';
+import { PayoutsModule } from './payouts/payouts.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
     FlashcardsModule,
     QuizzesModule,
     DashboardModule,
+    TutorNotesModule,
+    TutorStudentsModule,
+    PayoutsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -136,6 +136,9 @@ model User {
   notes         Note[]
   flashcardSets FlashcardSet[]
   quizzes       Quiz[]
+
+  tutorNotesWritten TutorNote[] @relation("TutorNotesByTutor")
+  tutorNotesAboutMe TutorNote[] @relation("TutorNotesAboutStudent")
 }
 
 // One persistent AI-helper thread per student (not per booking) — kept
@@ -286,6 +289,24 @@ model Booking {
   conversation Conversation?
   review       Review?
   disputes     Dispute[]
+  tutorNotes   TutorNote[]
+}
+
+// A tutor's own notes on a student's progress — separate from the student's
+// AI-generated study Notes model. Optionally tied to a specific session
+// (bookingId) or general (null), and optionally AI-polished from a tutor's
+// rough bullet points via the same GroqService as the student-side features.
+model TutorNote {
+  id        String   @id @default(cuid())
+  tutorId   String
+  tutor     User     @relation("TutorNotesByTutor", fields: [tutorId], references: [id])
+  studentId String
+  student   User     @relation("TutorNotesAboutStudent", fields: [studentId], references: [id])
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  topic     String
+  content   String
+  createdAt DateTime @default(now())
 }
 
 model Payment {
@@ -301,6 +322,8 @@ model Payment {
   platformFee       Decimal       @db.Decimal(10, 2)
   tutorPayoutAmount Decimal       @db.Decimal(10, 2)
   payfastRef        String?
+  payoutId          String?
+  payout            Payout?       @relation(fields: [payoutId], references: [id])
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 }
@@ -317,6 +340,8 @@ model Payout {
   reference    String?
   paidAt       DateTime?
   createdAt    DateTime     @default(now())
+
+  payments Payment[]
 }
 
 model Conversation {

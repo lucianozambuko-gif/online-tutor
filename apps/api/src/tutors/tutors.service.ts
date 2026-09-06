@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '../prisma/prisma-enums';
+import { Role, UserStatus } from '../prisma/prisma-enums';
 import { UpdateTutorProfileDto } from './dto/update-tutor-profile.dto';
 
 const TUTOR_LIST_SELECT = {
@@ -23,14 +23,14 @@ export class TutorsService {
 
   findAll() {
     return this.prisma.user.findMany({
-      where: { role: Role.TUTOR },
+      where: { role: Role.TUTOR, status: UserStatus.ACTIVE },
       select: TUTOR_LIST_SELECT,
     });
   }
 
   async findOne(id: string) {
     const tutor = await this.prisma.user.findFirst({
-      where: { id, role: Role.TUTOR },
+      where: { id, role: Role.TUTOR, status: UserStatus.ACTIVE },
       select: TUTOR_LIST_SELECT,
     });
     if (!tutor) {

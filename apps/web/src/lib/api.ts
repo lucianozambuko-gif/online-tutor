@@ -292,3 +292,96 @@ export interface DashboardSummary {
 export function getStudentDashboard(): Promise<DashboardSummary> {
   return apiFetch("/dashboard/student");
 }
+
+export interface TutorDashboardSummary {
+  requests: {
+    count: number;
+    recent: { id: string; subject: string; scheduledAt: string; student: { id: string; name: string } }[];
+  };
+  students: { count: number; recent: RosterEntry[] };
+  sessions: {
+    count: number;
+    upcoming: { id: string; subject: string; scheduledAt: string; student: { id: string; name: string } }[];
+  };
+  earnings: { thisMonth: number };
+}
+
+export function getTutorDashboard(): Promise<TutorDashboardSummary> {
+  return apiFetch("/dashboard/tutor");
+}
+
+export interface RosterEntry {
+  student: { id: string; name: string; email: string };
+  subjects: string[];
+  sessionCount: number;
+  lastSession: string | null;
+  nextSession: string | null;
+}
+
+export function listTutorStudents(): Promise<RosterEntry[]> {
+  return apiFetch("/tutor-students");
+}
+
+export function getTutorStudent(studentId: string): Promise<{ student: { id: string; name: string; email: string }; bookings: Booking[] }> {
+  return apiFetch(`/tutor-students/${studentId}`);
+}
+
+export interface TutorNote {
+  id: string;
+  studentId: string;
+  bookingId: string | null;
+  topic: string;
+  content: string;
+  createdAt: string;
+  student: { id: string; name: string };
+}
+
+export function generateTutorNote(data: {
+  studentId: string;
+  topic: string;
+  rawInput: string;
+  bookingId?: string;
+}): Promise<TutorNote> {
+  return apiFetch("/tutor-notes/generate", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function listTutorNotes(studentId?: string): Promise<TutorNote[]> {
+  const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
+  return apiFetch(`/tutor-notes${query}`);
+}
+
+export function getTutorNote(id: string): Promise<TutorNote> {
+  return apiFetch(`/tutor-notes/${id}`);
+}
+
+export type PayoutStatus = "PENDING" | "PAID" | "FAILED";
+
+export interface Payout {
+  id: string;
+  tutorId: string;
+  periodStart: string;
+  periodEnd: string;
+  totalAmount: string;
+  status: PayoutStatus;
+  payoutMethod: string;
+  reference: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  tutor?: { id: string; name: string; email: string };
+}
+
+export function getMyPayoutSummary(): Promise<{ pendingAmount: number; lifetimePaid: number; payouts: Payout[] }> {
+  return apiFetch("/payouts/me");
+}
+
+export function listAllPayouts(): Promise<Payout[]> {
+  return apiFetch("/payouts");
+}
+
+export function runPayoutBatch(): Promise<{ created: Payout[] }> {
+  return apiFetch("/payouts/run", { method: "POST" });
+}
+
+export function markPayoutPaid(id: string, reference?: string): Promise<Payout> {
+  return apiFetch(`/payouts/${id}/paid`, { method: "PATCH", body: JSON.stringify({ reference }) });
+}

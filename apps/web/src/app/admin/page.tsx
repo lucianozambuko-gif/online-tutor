@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listUsers, deleteUser, ApiError, type AdminUser } from "@/lib/api";
+import { listUsers, deleteUser, listAllPayouts, runPayoutBatch, markPayoutPaid, ApiError, type AdminUser, type Payout } from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
 export default function AdminDashboard() {
   const { user: currentUser } = useAuth();
@@ -12,12 +16,58 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [payoutsLoading, setPayoutsLoading] = useState(true);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
+  const [runningPayout, setRunningPayout] = useState(false);
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+
   function load() {
     setLoading(true);
     listUsers()
       .then(setUsers)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load users"))
       .finally(() => setLoading(false));
+  }
+
+  function loadPayouts() {
+    setPayoutsLoading(true);
+    listAllPayouts()
+      .then(setPayouts)
+      .catch((err) => setPayoutError(err instanceof ApiError ? err.message : "Failed to load payouts"))
+      .finally(() => setPayoutsLoading(false));
+  }
+
+  useEffect(loadPayouts, []);
+
+  async function handleRunPayout() {
+    setRunningPayout(true);
+    setPayoutError(null);
+    try {
+      const { created } = await runPayoutBatch();
+      if (created.length === 0) {
+        setPayoutError("No completed, paid sessions are waiting on a payout right now.");
+      }
+      loadPayouts();
+    } catch (err) {
+      setPayoutError(err instanceof ApiError ? err.message : "Failed to run payout batch");
+    } finally {
+      setRunningPayout(false);
+    }
+  }
+
+  async function handleMarkPaid(payout: Payout) {
+    if (!window.confirm(`Mark the R${Number(payout.totalAmount).toFixed(2)} payout to ${payout.tutor?.name} as paid?`)) return;
+    setMarkingPaidId(payout.id);
+    setPayoutError(null);
+    try {
+      await markPayoutPaid(payout.id);
+      loadPayouts();
+    } catch (err) {
+      setPayoutError(err instanceof ApiError ? err.message : "Failed to update payout");
+    } finally {
+      setMarkingPaidId(null);
+    }
   }
 
   useEffect(load, []);
@@ -68,6 +118,64 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-ink-900">Payouts</h2>
+            <p className="mt-1 text-sm text-ink-500">
+              Batch every completed, paid session not yet paid out into a payout per tutor.
+            </p>
+          </div>
+          <button type="button" disabled={runningPayout} onClick={handleRunPayout} className={buttonClass("primary")}>
+            {runningPayout ? "Running..." : "Run payout batch"}
+          </button>
+        </div>
+
+        {payoutError && (
+          <div className="mt-4">
+            <ErrorText>{payoutError}</ErrorText>
+          </div>
+        )}
+
+        {payoutsLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading payouts...</p>
+        ) : payouts.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No payouts yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {payouts.map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-700/10 p-4"
+              >
+                <div>
+                  <p className="text-sm font-medium text-ink-900">{p.tutor?.name}</p>
+                  <p className="text-xs text-ink-500">
+                    {formatDate(p.periodStart)} – {formatDate(p.periodEnd)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-display text-base font-semibold text-ink-900">
+                    R{Number(p.totalAmount).toFixed(2)}
+                  </span>
+                  <StatusBadge status={p.status} />
+                  {p.status === "PENDING" && (
+                    <button
+                      type="button"
+                      disabled={markingPaidId === p.id}
+                      onClick={() => handleMarkPaid(p)}
+                      className={buttonClass("outline", "px-3 py-1.5 text-xs")}
+                    >
+                      Mark paid
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card className="overflow-x-auto">
         <h2 className="font-display text-lg font-semibold text-ink-900">All users</h2>

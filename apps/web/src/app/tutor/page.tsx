@@ -1,18 +1,14 @@
-import { TutorProfileForm } from "@/components/tutor-profile-form";
-import { BookingsList } from "@/components/bookings-list";
+"use client";
+
+import { TutorOverview } from "@/components/tutor-overview";
+import { useAuth } from "@/lib/auth-context";
 
 export default function TutorDashboard() {
-  return (
-    <div className="space-y-10">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-900">
-          Tutor dashboard
-        </h1>
-        <p className="mt-1 text-sm text-ink-500">Manage your profile and respond to bookings.</p>
-      </div>
+  const { user, loading } = useAuth();
 
-      <TutorProfileForm />
-      <BookingsList role="TUTOR" />
-    </div>
-  );
+  if (loading || !user) {
+    return <p className="text-sm text-ink-500">Loading your dashboard...</p>;
+  }
+
+  return <TutorOverview tutorName={user.name.split(" ")[0]} />;
 }
