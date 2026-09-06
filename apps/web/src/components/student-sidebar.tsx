@@ -1,0 +1,215 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+import { useAuth } from "@/lib/auth-context";
+
+function DashboardIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="8" height="8" rx="2" />
+      <rect x="13" y="3" width="8" height="8" rx="2" />
+      <rect x="3" y="13" width="8" height="8" rx="2" />
+      <rect x="13" y="13" width="8" height="8" rx="2" />
+    </svg>
+  );
+}
+
+function NotesIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2h9l3 3v17H6z" />
+      <path d="M15 2v3h3" />
+      <path d="M9 11h6M9 15h6M9 19h3" />
+    </svg>
+  );
+}
+
+function FlashcardsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="8" width="14" height="10" rx="2" />
+      <path d="M7.5 8V5.5A1.5 1.5 0 0 1 9 4h10a1.5 1.5 0 0 1 1.5 1.5V15a1.5 1.5 0 0 1-1.5 1.5h-1.5" />
+    </svg>
+  );
+}
+
+function QuizIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 12.5l2.3 2.3L15.5 9.5" />
+    </svg>
+  );
+}
+
+function LibraryIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5.5c-1.7-1.3-3.9-2-6-2v13.5c2.1 0 4.3.7 6 2 1.7-1.3 3.9-2 6-2V3.5c-2.1 0-4.3.7-6 2z" />
+    </svg>
+  );
+}
+
+function BookTutorIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <path d="M12 13.5v5M9.5 16h5" />
+    </svg>
+  );
+}
+
+function MyBookingsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <path d="M9.5 16l1.6 1.6L14.5 14" />
+    </svg>
+  );
+}
+
+function AiHelperIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.4 4.3L18 8.7l-4.6 1.4L12 14.4l-1.4-4.3L6 8.7l4.6-1.4z" />
+      <path d="M18.5 14.5l.6 1.8 1.9.6-1.9.6-.6 1.8-.6-1.8-1.9-.6 1.9-.6z" />
+    </svg>
+  );
+}
+
+function LogOutIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  );
+}
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: ReactNode;
+  match: (pathname: string) => boolean;
+  accent?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", href: "/student", icon: <DashboardIcon />, match: (p) => p === "/student" },
+  {
+    label: "Notes",
+    href: "/student/library?tab=notes",
+    icon: <NotesIcon />,
+    match: (p) => p.startsWith("/student/notes"),
+  },
+  {
+    label: "Flashcards",
+    href: "/student/library?tab=flashcards",
+    icon: <FlashcardsIcon />,
+    match: (p) => p.startsWith("/student/flashcards"),
+  },
+  {
+    label: "Quizzes",
+    href: "/student/library?tab=quizzes",
+    icon: <QuizIcon />,
+    match: (p) => p.startsWith("/student/quizzes"),
+  },
+  {
+    label: "Library",
+    href: "/student/library",
+    icon: <LibraryIcon />,
+    match: (p) => p.startsWith("/student/library"),
+  },
+];
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+export function StudentSidebar() {
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  return (
+    <div className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col justify-between overflow-y-auto border-r border-ink-700/10 bg-white px-5 py-7">
+      <div>
+        <Link href="/student" className="flex items-center gap-2 px-2.5 pb-7">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+          <span className="font-display text-lg font-semibold tracking-tight text-ink-900">Lumen</span>
+        </Link>
+
+        <nav className="flex flex-col gap-0.5">
+          {NAV_ITEMS.map((item) => {
+            const active = item.match(pathname);
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
+                  active
+                    ? "bg-sky-100 font-semibold text-sky-700"
+                    : "font-medium text-ink-500 hover:bg-ink-700/5 hover:text-ink-900"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <div className="my-2.5 h-px bg-ink-700/8" />
+
+          <Link
+            href="/student#book-a-tutor"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink-500 transition hover:bg-ink-700/5 hover:text-ink-900"
+          >
+            <BookTutorIcon />
+            Book a tutor
+          </Link>
+          <Link
+            href="/student#my-bookings"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink-500 transition hover:bg-ink-700/5 hover:text-ink-900"
+          >
+            <MyBookingsIcon />
+            My bookings
+          </Link>
+          <Link
+            href="/student#ai-helper"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gold-600 transition hover:bg-gold-300/10"
+          >
+            <AiHelperIcon />
+            AI Helper
+          </Link>
+        </nav>
+      </div>
+
+      {user && (
+        <div className="flex items-center gap-2.5 border-t border-ink-700/8 pt-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100">
+            <span className="font-display text-sm font-semibold text-sky-700">{initials(user.name)}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold text-ink-900">{user.name}</p>
+            <span className="mt-0.5 inline-block rounded-full bg-sky-100 px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+              {user.role.toLowerCase()}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => logout()}
+            aria-label="Log out"
+            className="shrink-0 text-ink-300 transition hover:text-ink-700"
+          >
+            <LogOutIcon />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
