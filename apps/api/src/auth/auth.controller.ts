@@ -8,7 +8,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { CookieOptions, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -17,6 +17,22 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import type { JwtPayload } from './jwt-payload.interface';
 import { UsersService } from '../users/users.service';
 import { AUTH_COOKIE_MAX_AGE_MS, AUTH_COOKIE_NAME } from './auth.constants';
+
+// The web app (Vercel) and API (Render) are different sites in production,
+// so the cookie needs SameSite=None to be sent on cross-site requests —
+// which browsers only allow when Secure is also set. Locally both run on
+// localhost, where SameSite=None would still work but isn't needed; Lax is
+// used there instead purely so cookies remain visible/inspectable over the
+// plain-HTTP dev servers some browsers are stricter about with None+Secure.
+function cookieOptions(): CookieOptions {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    path: '/',
+  };
+}
 
 @Controller('auth')
 export class AuthController {
@@ -50,7 +66,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(AUTH_COOKIE_NAME, { path: '/' });
+    res.clearCookie(AUTH_COOKIE_NAME, cookieOptions());
     return { success: true };
   }
 
@@ -74,11 +90,8 @@ export class AuthController {
 
   private setAuthCookie(res: Response, token: string) {
     res.cookie(AUTH_COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      ...cookieOptions(),
       maxAge: AUTH_COOKIE_MAX_AGE_MS,
-      path: '/',
     });
   }
 }
