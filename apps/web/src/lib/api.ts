@@ -86,6 +86,44 @@ export function updateOwnTutorProfile(data: {
   return apiFetch("/tutors/me", { method: "PATCH", body: JSON.stringify(data) });
 }
 
+export type VerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface OwnTutorProfile {
+  id: string;
+  userId: string;
+  subjects: string[];
+  qualifications: string[];
+  hourlyRate: string;
+  bio: string | null;
+  avgRating: string | null;
+  verificationStatus: VerificationStatus;
+}
+
+export function getOwnTutorProfile(): Promise<OwnTutorProfile> {
+  return apiFetch("/tutors/me");
+}
+
+export interface AdminTutor {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  tutorProfile: {
+    subjects: string[];
+    hourlyRate: string;
+    bio: string | null;
+    verificationStatus: VerificationStatus;
+  };
+}
+
+export function listAdminTutors(): Promise<AdminTutor[]> {
+  return apiFetch("/tutors/admin/list");
+}
+
+export function setTutorVerification(tutorId: string, status: VerificationStatus): Promise<AdminTutor> {
+  return apiFetch(`/tutors/${tutorId}/verification`, { method: "PATCH", body: JSON.stringify({ status }) });
+}
+
 export type BookingStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "DISPUTED";
 export type PaymentStatus = "PENDING" | "PAID" | "REFUNDED" | "FAILED";
 

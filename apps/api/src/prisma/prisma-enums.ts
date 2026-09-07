@@ -9,4 +9,5 @@ export {
   PaymentMethod,
   PayoutStatus,
   AiMessageRole,
+  VerificationStatus,
 } from '../../generated/prisma/client';

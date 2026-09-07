@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listUsers, deleteUser, listAllPayouts, runPayoutBatch, markPayoutPaid, ApiError, type AdminUser, type Payout } from "@/lib/api";
+import {
+  listUsers,
+  deleteUser,
+  listAllPayouts,
+  runPayoutBatch,
+  markPayoutPaid,
+  listAdminTutors,
+  setTutorVerification,
+  ApiError,
+  type AdminUser,
+  type Payout,
+  type AdminTutor,
+} from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
@@ -22,6 +34,11 @@ export default function AdminDashboard() {
   const [runningPayout, setRunningPayout] = useState(false);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
 
+  const [tutors, setTutors] = useState<AdminTutor[]>([]);
+  const [tutorsLoading, setTutorsLoading] = useState(true);
+  const [tutorsError, setTutorsError] = useState<string | null>(null);
+  const [decidingTutorId, setDecidingTutorId] = useState<string | null>(null);
+
   function load() {
     listUsers()
       .then(setUsers)
@@ -37,6 +54,30 @@ export default function AdminDashboard() {
   }
 
   useEffect(loadPayouts, []);
+
+  function loadTutors() {
+    listAdminTutors()
+      .then(setTutors)
+      .catch((err) => setTutorsError(err instanceof ApiError ? err.message : "Failed to load tutors"))
+      .finally(() => setTutorsLoading(false));
+  }
+
+  useEffect(loadTutors, []);
+
+  async function handleVerification(tutor: AdminTutor, status: "APPROVED" | "REJECTED") {
+    if (status === "REJECTED" && !window.confirm(`Reject ${tutor.name} as a tutor? They won't be bookable.`)) return;
+    setDecidingTutorId(tutor.id);
+    setTutorsError(null);
+    try {
+      await setTutorVerification(tutor.id, status);
+      setTutorsLoading(true);
+      loadTutors();
+    } catch (err) {
+      setTutorsError(err instanceof ApiError ? err.message : "Failed to update this tutor");
+    } finally {
+      setDecidingTutorId(null);
+    }
+  }
 
   async function handleRunPayout() {
     setRunningPayout(true);
@@ -119,6 +160,69 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+
+      <Card>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Tutor verification</h2>
+          <p className="mt-1 text-sm text-ink-500">
+            New tutors aren&apos;t bookable until you approve them here.
+          </p>
+        </div>
+
+        {tutorsError && (
+          <div className="mt-4">
+            <ErrorText>{tutorsError}</ErrorText>
+          </div>
+        )}
+
+        {tutorsLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading tutors...</p>
+        ) : tutors.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No tutors have registered yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {[...tutors]
+              .sort((a, b) => (a.tutorProfile.verificationStatus === b.tutorProfile.verificationStatus ? 0 : a.tutorProfile.verificationStatus === "PENDING" ? -1 : 1))
+              .map((t) => (
+                <li key={t.id} className="rounded-xl border border-ink-700/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-ink-900">{t.name}</p>
+                      <p className="text-xs text-ink-500">{t.email}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={t.tutorProfile.verificationStatus} />
+                      {t.tutorProfile.verificationStatus !== "APPROVED" && (
+                        <button
+                          type="button"
+                          disabled={decidingTutorId === t.id}
+                          onClick={() => handleVerification(t, "APPROVED")}
+                          className={buttonClass("primary", "px-3 py-1.5 text-xs")}
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {t.tutorProfile.verificationStatus !== "REJECTED" && (
+                        <button
+                          type="button"
+                          disabled={decidingTutorId === t.id}
+                          onClick={() => handleVerification(t, "REJECTED")}
+                          className={buttonClass("danger", "px-3 py-1.5 text-xs")}
+                        >
+                          Reject
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-ink-300">
+                    {t.tutorProfile.subjects.length > 0 ? t.tutorProfile.subjects.join(", ") : "No subjects listed"} · R
+                    {Number(t.tutorProfile.hourlyRate).toFixed(0)}/hr
+                  </p>
+                </li>
+              ))}
+          </ul>
+        )}
+      </Card>
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">

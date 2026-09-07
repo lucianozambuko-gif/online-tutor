@@ -65,10 +65,12 @@ const STATUS_STYLE: Record<string, string> = {
   COMPLETED: "bg-emerald-100 text-emerald-700",
   ACTIVE: "bg-emerald-100 text-emerald-700",
   PAID: "bg-emerald-100 text-emerald-700",
+  APPROVED: "bg-emerald-100 text-emerald-700",
   CANCELLED: "bg-ink-700/8 text-ink-500",
   FAILED: "bg-red-100 text-red-700",
   DISPUTED: "bg-red-100 text-red-700",
   SUSPENDED: "bg-red-100 text-red-700",
+  REJECTED: "bg-red-100 text-red-700",
 };
 
 export function StatusBadge({ status }: { status: string }) {

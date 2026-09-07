@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTutorDashboard, acceptBooking, declineBooking, ApiError, type TutorDashboardSummary } from "@/lib/api";
+import {
+  getTutorDashboard,
+  getOwnTutorProfile,
+  acceptBooking,
+  declineBooking,
+  ApiError,
+  type TutorDashboardSummary,
+  type VerificationStatus,
+} from "@/lib/api";
 import { ErrorText, buttonClass } from "@/components/ui";
 
 function RequestsIcon({ color }: { color: string }) {
@@ -53,6 +61,7 @@ function formatWhen(iso: string) {
 
 export function TutorOverview({ tutorName }: { tutorName: string }) {
   const [data, setData] = useState<TutorDashboardSummary | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
 
@@ -63,6 +72,11 @@ export function TutorOverview({ tutorName }: { tutorName: string }) {
   }
 
   useEffect(load, []);
+  useEffect(() => {
+    getOwnTutorProfile()
+      .then((profile) => setVerificationStatus(profile.verificationStatus))
+      .catch(() => {});
+  }, []);
 
   async function respond(id: string, action: (id: string) => Promise<unknown>) {
     setActingOn(id);
@@ -117,6 +131,24 @@ export function TutorOverview({ tutorName }: { tutorName: string }) {
         <h1 className="font-display text-[26px] font-semibold tracking-tight text-ink-900">Hello, {tutorName}</h1>
         <p className="mt-1 text-sm text-ink-500">Here&apos;s what&apos;s happening with your students today.</p>
       </div>
+
+      {verificationStatus === "PENDING" && (
+        <div className="rounded-2xl border border-gold-400/30 bg-gold-300/10 p-5 text-sm text-ink-700">
+          Your profile is awaiting admin approval — you won&apos;t appear in student searches or be
+          bookable until then.{" "}
+          <Link href="/tutor/profile" className="font-semibold text-sky-700 hover:text-sky-600">
+            View profile
+          </Link>
+        </div>
+      )}
+      {verificationStatus === "REJECTED" && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          Your tutor application wasn&apos;t approved, so you won&apos;t be bookable.{" "}
+          <Link href="/tutor/profile" className="font-semibold underline">
+            View profile
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
         {cards.map((card) => (

@@ -11,6 +11,7 @@ import {
   BookingStatus,
   PaymentStatus,
   PaymentMethod,
+  VerificationStatus,
 } from '../prisma/prisma-enums';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
@@ -43,6 +44,13 @@ export class BookingsService {
     });
     if (!tutor?.tutorProfile) {
       throw new NotFoundException('Tutor not found');
+    }
+    // Defense in depth: the public tutor listing already hides anyone not
+    // approved, but this blocks a booking hitting the API directly too.
+    if (tutor.tutorProfile.verificationStatus !== VerificationStatus.APPROVED) {
+      throw new ForbiddenException(
+        'This tutor has not been approved for bookings yet',
+      );
     }
 
     const hourlyRate = Number(tutor.tutorProfile.hourlyRate);
