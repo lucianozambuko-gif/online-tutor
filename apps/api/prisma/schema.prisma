@@ -89,6 +89,14 @@ enum DisputeStatus {
   REJECTED
 }
 
+enum IssueCategory {
+  BOOKING
+  PAYMENT
+  TECHNICAL
+  ACCOUNT
+  OTHER
+}
+
 model User {
   id              String     @id @default(cuid())
   email           String     @unique
@@ -125,6 +133,8 @@ model User {
 
   disputesRaised  Dispute[] @relation("DisputeRaisedBy")
   disputesAgainst Dispute[] @relation("DisputeAgainst")
+
+  issueReports IssueReport[]
 
   auditLogs       AuditLog[]
   offlineSyncLogs OfflineSyncLog[]
@@ -294,6 +304,7 @@ model Booking {
   conversation Conversation?
   review       Review?
   disputes     Dispute[]
+  issueReports IssueReport[]
   tutorNotes   TutorNote[]
 }
 
@@ -443,6 +454,25 @@ model Dispute {
   resolutionNotes String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+}
+
+// A general "report an issue" channel for students and tutors — unlike
+// Dispute (which always names a booking and a counterparty), this covers
+// anything from a billing question to a bug report, with a booking as an
+// optional bit of context rather than a requirement.
+model IssueReport {
+  id          String        @id @default(cuid())
+  reporterId  String
+  reporter    User          @relation(fields: [reporterId], references: [id])
+  category    IssueCategory
+  subject     String
+  description String
+  bookingId   String?
+  booking     Booking?      @relation(fields: [bookingId], references: [id])
+  status      DisputeStatus @default(OPEN)
+  adminNotes  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
 
 model AuditLog {

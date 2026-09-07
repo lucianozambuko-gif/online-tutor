@@ -10,4 +10,6 @@ export {
   PayoutStatus,
   AiMessageRole,
   VerificationStatus,
+  DisputeStatus,
+  IssueCategory,
 } from '../../generated/prisma/client';

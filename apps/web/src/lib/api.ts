@@ -441,3 +441,43 @@ export function runPayoutBatch(): Promise<{ created: Payout[] }> {
 export function markPayoutPaid(id: string, reference?: string): Promise<Payout> {
   return apiFetch(`/payouts/${id}/paid`, { method: "PATCH", body: JSON.stringify({ reference }) });
 }
+
+export type IssueCategory = "BOOKING" | "PAYMENT" | "TECHNICAL" | "ACCOUNT" | "OTHER";
+export type IssueStatus = "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "REJECTED";
+
+export interface IssueReport {
+  id: string;
+  category: IssueCategory;
+  subject: string;
+  description: string;
+  bookingId: string | null;
+  status: IssueStatus;
+  adminNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminIssueReport extends IssueReport {
+  reporter: { id: string; name: string; email: string; role: "STUDENT" | "TUTOR" | "ADMIN" };
+}
+
+export function createIssueReport(data: {
+  category: IssueCategory;
+  subject: string;
+  description: string;
+  bookingId?: string;
+}): Promise<IssueReport> {
+  return apiFetch("/issues", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function listMyIssueReports(): Promise<IssueReport[]> {
+  return apiFetch("/issues/mine");
+}
+
+export function listAllIssueReports(): Promise<AdminIssueReport[]> {
+  return apiFetch("/issues");
+}
+
+export function updateIssueReport(id: string, data: { status: IssueStatus; adminNotes?: string }): Promise<AdminIssueReport> {
+  return apiFetch(`/issues/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}

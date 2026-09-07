@@ -9,10 +9,14 @@ import {
   markPayoutPaid,
   listAdminTutors,
   setTutorVerification,
+  listAllIssueReports,
+  updateIssueReport,
   ApiError,
   type AdminUser,
   type Payout,
   type AdminTutor,
+  type AdminIssueReport,
+  type IssueStatus,
 } from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -38,6 +42,12 @@ export default function AdminDashboard() {
   const [tutorsLoading, setTutorsLoading] = useState(true);
   const [tutorsError, setTutorsError] = useState<string | null>(null);
   const [decidingTutorId, setDecidingTutorId] = useState<string | null>(null);
+
+  const [issues, setIssues] = useState<AdminIssueReport[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(true);
+  const [issuesError, setIssuesError] = useState<string | null>(null);
+  const [updatingIssueId, setUpdatingIssueId] = useState<string | null>(null);
+  const [issueNotes, setIssueNotes] = useState<Record<string, string>>({});
 
   function load() {
     listUsers()
@@ -76,6 +86,29 @@ export default function AdminDashboard() {
       setTutorsError(err instanceof ApiError ? err.message : "Failed to update this tutor");
     } finally {
       setDecidingTutorId(null);
+    }
+  }
+
+  function loadIssues() {
+    listAllIssueReports()
+      .then(setIssues)
+      .catch((err) => setIssuesError(err instanceof ApiError ? err.message : "Failed to load issue reports"))
+      .finally(() => setIssuesLoading(false));
+  }
+
+  useEffect(loadIssues, []);
+
+  async function handleIssueUpdate(issue: AdminIssueReport, status: IssueStatus) {
+    setUpdatingIssueId(issue.id);
+    setIssuesError(null);
+    try {
+      await updateIssueReport(issue.id, { status, adminNotes: issueNotes[issue.id] ?? issue.adminNotes ?? undefined });
+      setIssuesLoading(true);
+      loadIssues();
+    } catch (err) {
+      setIssuesError(err instanceof ApiError ? err.message : "Failed to update this report");
+    } finally {
+      setUpdatingIssueId(null);
     }
   }
 
@@ -220,6 +253,84 @@ export default function AdminDashboard() {
                   </p>
                 </li>
               ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Reported issues</h2>
+          <p className="mt-1 text-sm text-ink-500">Issues students and tutors have flagged.</p>
+        </div>
+
+        {issuesError && (
+          <div className="mt-4">
+            <ErrorText>{issuesError}</ErrorText>
+          </div>
+        )}
+
+        {issuesLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading issue reports...</p>
+        ) : issues.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">Nothing reported yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-4">
+            {issues.map((issue) => {
+              const busy = updatingIssueId === issue.id;
+              return (
+                <li key={issue.id} className="rounded-xl border border-ink-700/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-ink-900">{issue.subject}</p>
+                      <p className="text-xs text-ink-500">
+                        {issue.reporter.name} ({issue.reporter.role.toLowerCase()}) · {issue.category.toLowerCase()}
+                      </p>
+                    </div>
+                    <StatusBadge status={issue.status} />
+                  </div>
+                  <p className="mt-2 text-sm text-ink-700">{issue.description}</p>
+                  <textarea
+                    value={issueNotes[issue.id] ?? issue.adminNotes ?? ""}
+                    onChange={(e) => setIssueNotes((prev) => ({ ...prev, [issue.id]: e.target.value }))}
+                    placeholder="Add a note for the reporter (optional)"
+                    rows={2}
+                    className="mt-3 w-full resize-y rounded-lg border border-ink-700/15 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30"
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {issue.status !== "UNDER_REVIEW" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleIssueUpdate(issue, "UNDER_REVIEW")}
+                        className={buttonClass("outline", "px-3 py-1.5 text-xs")}
+                      >
+                        Mark under review
+                      </button>
+                    )}
+                    {issue.status !== "RESOLVED" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleIssueUpdate(issue, "RESOLVED")}
+                        className={buttonClass("primary", "px-3 py-1.5 text-xs")}
+                      >
+                        Mark resolved
+                      </button>
+                    )}
+                    {issue.status !== "REJECTED" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleIssueUpdate(issue, "REJECTED")}
+                        className={buttonClass("danger", "px-3 py-1.5 text-xs")}
+                      >
+                        Dismiss
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

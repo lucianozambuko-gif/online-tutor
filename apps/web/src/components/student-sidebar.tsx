@@ -81,6 +81,16 @@ function AiHelperIcon() {
   );
 }
 
+function ReportIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 9v4" />
+      <path d="M10.3 3.9 2.7 17.1a1.8 1.8 0 0 0 1.6 2.7h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z" />
+      <circle cx="12" cy="16.3" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function LogOutIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -185,6 +195,17 @@ export function StudentSidebar() {
           >
             <AiHelperIcon />
             AI Helper
+          </Link>
+          <Link
+            href="/student/report-issue"
+            className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
+              pathname.startsWith("/student/report-issue")
+                ? "bg-sky-100 font-semibold text-sky-700"
+                : "font-medium text-ink-500 hover:bg-ink-700/5 hover:text-ink-900"
+            }`}
+          >
+            <ReportIcon />
+            Report an issue
           </Link>
         </nav>
       </div>

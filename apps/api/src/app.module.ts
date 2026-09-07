@@ -17,6 +17,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { TutorNotesModule } from './tutor-notes/tutor-notes.module';
 import { TutorStudentsModule } from './tutor-students/tutor-students.module';
 import { PayoutsModule } from './payouts/payouts.module';
+import { IssuesModule } from './issues/issues.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PayoutsModule } from './payouts/payouts.module';
     TutorNotesModule,
     TutorStudentsModule,
     PayoutsModule,
+    IssuesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

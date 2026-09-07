@@ -73,6 +73,16 @@ function ProfileIcon() {
   );
 }
 
+function ReportIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 9v4" />
+      <path d="M10.3 3.9 2.7 17.1a1.8 1.8 0 0 0 1.6 2.7h15.4a1.8 1.8 0 0 0 1.6-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z" />
+      <circle cx="12" cy="16.3" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function LogOutIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -98,6 +108,12 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Earnings", href: "/tutor/earnings", icon: <EarningsIcon />, match: (p) => p.startsWith("/tutor/earnings") },
   { label: "Sessions", href: "/tutor/sessions", icon: <SessionsIcon />, match: (p) => p.startsWith("/tutor/sessions") },
   { label: "Profile", href: "/tutor/profile", icon: <ProfileIcon />, match: (p) => p.startsWith("/tutor/profile") },
+  {
+    label: "Report an issue",
+    href: "/tutor/report-issue",
+    icon: <ReportIcon />,
+    match: (p) => p.startsWith("/tutor/report-issue"),
+  },
 ];
 
 function initials(name: string) {

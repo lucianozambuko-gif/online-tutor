@@ -61,6 +61,9 @@ export function ErrorText({ children }: { children: ReactNode }) {
 const STATUS_STYLE: Record<string, string> = {
   PENDING: "bg-gold-300/25 text-gold-600",
   PENDING_GUARDIAN_CONSENT: "bg-gold-300/25 text-gold-600",
+  OPEN: "bg-gold-300/25 text-gold-600",
+  UNDER_REVIEW: "bg-sky-100 text-sky-700",
+  RESOLVED: "bg-emerald-100 text-emerald-700",
   CONFIRMED: "bg-sky-100 text-sky-700",
   COMPLETED: "bg-emerald-100 text-emerald-700",
   ACTIVE: "bg-emerald-100 text-emerald-700",
