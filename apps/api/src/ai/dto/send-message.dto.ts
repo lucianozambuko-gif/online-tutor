@@ -1,8 +1,10 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class SendMessageDto {
+  // Optional because a message can be just an attached image with no typed
+  // text — the service rejects the request if both are empty.
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(4000)
-  content: string;
+  content?: string;
 }

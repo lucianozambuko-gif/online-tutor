@@ -159,6 +159,11 @@ model AiMessage {
   conversation   AiConversation @relation(fields: [conversationId], references: [id])
   role           AiMessageRole
   content        String
+  // A photo the student attached (e.g. a homework problem) — stored inline as
+  // base64 since there's no object storage set up; kept small by the upload
+  // size limit enforced in the controller.
+  imageData      String?
+  imageMimeType  String?
   createdAt      DateTime       @default(now())
 }
 
@@ -306,6 +311,11 @@ model TutorNote {
   booking   Booking? @relation(fields: [bookingId], references: [id])
   topic     String
   content   String
+  // An optional file/photo the tutor attaches alongside the note (e.g. a
+  // worksheet scan) — reference material only, not read by the AI.
+  attachmentData     String?
+  attachmentMimeType String?
+  attachmentName     String?
   createdAt DateTime @default(now())
 }
 

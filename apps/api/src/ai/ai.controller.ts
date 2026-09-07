@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -7,6 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
+import { imageUploadOptions } from '../common/upload';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -21,7 +31,12 @@ export class AiController {
   }
 
   @Post('messages')
-  sendMessage(@CurrentUser() user: JwtPayload, @Body() dto: SendMessageDto) {
-    return this.aiService.sendMessage(user.sub, dto.content);
+  @UseInterceptors(FileInterceptor('image', imageUploadOptions))
+  sendMessage(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SendMessageDto,
+    @UploadedFile() image?: Express.Multer.File,
+  ) {
+    return this.aiService.sendMessage(user.sub, dto.content, image);
   }
 }

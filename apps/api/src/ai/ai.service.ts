@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroqService, type GroqMessage } from '../groq/groq.service';
 import { AiMessageRole } from '../prisma/prisma-enums';
+
+const DEFAULT_VISION_MODEL = 'qwen/qwen3.6-27b';
 
 const SYSTEM_PROMPT = `You are a friendly, patient AI study helper on a South African online tutoring platform, for school and university students.
 
@@ -36,30 +38,74 @@ export class AiService {
     });
   }
 
-  async sendMessage(studentId: string, content: string) {
+  async sendMessage(
+    studentId: string,
+    rawContent: string | undefined,
+    image?: Express.Multer.File,
+  ) {
+    const content = rawContent?.trim() ?? '';
+    if (!content && !image) {
+      throw new BadRequestException('Type a message or attach an image first');
+    }
+
     const conversation = await this.getConversation(studentId);
+
+    // Built from history BEFORE the current turn is inserted, so the image
+    // (if any) can be attached to just this one call instead of being mixed
+    // into a row already fetched as plain text.
+    const priorMessages = await this.prisma.aiMessage.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    const priorHistory = priorMessages.slice(-MAX_HISTORY_MESSAGES);
+
+    const imageData = image ? image.buffer.toString('base64') : null;
+    const imageMimeType = image?.mimetype ?? null;
 
     await this.prisma.aiMessage.create({
       data: {
         conversationId: conversation.id,
         role: AiMessageRole.USER,
-        content,
+        content: content || '(shared an image)',
+        imageData,
+        imageMimeType,
       },
     });
 
-    const allMessages = await this.prisma.aiMessage.findMany({
-      where: { conversationId: conversation.id },
-      orderBy: { createdAt: 'asc' },
-    });
-    const recentHistory = allMessages.slice(-MAX_HISTORY_MESSAGES);
+    // Past images aren't resent — only the current turn's image goes to the
+    // model, kept as a short text note for context continuity instead.
+    const currentContent: GroqMessage['content'] = image
+      ? [
+          {
+            type: 'text',
+            text: content || "What's in this image? Please help me with it.",
+          },
+          {
+            type: 'image_url',
+            image_url: { url: `data:${image.mimetype};base64,${imageData}` },
+          },
+        ]
+      : content;
 
-    const replyText = await this.groq.chat([
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...recentHistory.map((m): GroqMessage => ({
-        role: m.role === AiMessageRole.USER ? 'user' : 'assistant',
-        content: m.content,
-      })),
-    ]);
+    const replyText = await this.groq.chat(
+      [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...priorHistory.map((m): GroqMessage => ({
+          role: m.role === AiMessageRole.USER ? 'user' : 'assistant',
+          content: m.imageData ? `${m.content}\n[shared an image]` : m.content,
+        })),
+        { role: 'user', content: currentContent },
+      ],
+      image
+        ? {
+            // The preview vision model's account-level output-token-per-minute
+            // limit is 1000 — stay comfortably under it.
+            model: process.env.GROQ_VISION_MODEL ?? DEFAULT_VISION_MODEL,
+            maxTokens: 800,
+            reasoningFormat: 'hidden',
+          }
+        : undefined,
+    );
 
     return this.prisma.aiMessage.create({
       data: {

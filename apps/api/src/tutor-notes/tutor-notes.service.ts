@@ -28,7 +28,11 @@ export class TutorNotesService {
     }
   }
 
-  async generate(tutorId: string, dto: GenerateTutorNoteDto) {
+  async generate(
+    tutorId: string,
+    dto: GenerateTutorNoteDto,
+    attachment?: Express.Multer.File,
+  ) {
     await this.assertHasTutored(tutorId, dto.studentId);
 
     if (dto.bookingId) {
@@ -58,6 +62,11 @@ export class TutorNotesService {
         bookingId: dto.bookingId,
         topic: dto.topic,
         content: content || dto.rawInput,
+        attachmentData: attachment
+          ? attachment.buffer.toString('base64')
+          : null,
+        attachmentMimeType: attachment?.mimetype ?? null,
+        attachmentName: attachment?.originalname ?? null,
       },
       include: { student: { select: { id: true, name: true } } },
     });

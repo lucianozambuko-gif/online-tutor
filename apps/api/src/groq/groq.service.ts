@@ -4,9 +4,16 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+export type GroqContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
 export interface GroqMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  // A plain string for ordinary text turns; an array of parts (text +
+  // image_url) for a vision-model call, matching Groq's OpenAI-compatible
+  // multimodal message format.
+  content: string | GroqContentPart[];
 }
 
 // Keeps source material (e.g. a full generated note) from eating too much of
@@ -21,6 +28,10 @@ interface GroqChatOptions {
   maxTokens?: number;
   /** Ask Groq for strict JSON output (still returned as a string — parse it yourself). */
   json?: boolean;
+  /** Override the default text model — used for the one-off vision-capable call. */
+  model?: string;
+  /** 'hidden' drops a reasoning model's <think> trace, returning only its final answer. */
+  reasoningFormat?: 'raw' | 'parsed' | 'hidden';
 }
 
 // Shared by every feature that calls Groq (AI chat, notes, flashcards, quizzes)
@@ -52,11 +63,15 @@ export class GroqService {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
+          model:
+            options.model ?? process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
           messages,
           temperature: options.temperature ?? 0.4,
           max_tokens: options.maxTokens ?? 1024,
           ...(options.json ? { response_format: { type: 'json_object' } } : {}),
+          ...(options.reasoningFormat
+            ? { reasoning_format: options.reasoningFormat }
+            : {}),
         }),
       });
     } catch (err) {

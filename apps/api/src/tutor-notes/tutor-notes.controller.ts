@@ -5,8 +5,11 @@ import {
   Param,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { TutorNotesService } from './tutor-notes.service';
 import { GenerateTutorNoteDto } from './dto/generate-tutor-note.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,6 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
+import { attachmentUploadOptions } from '../common/upload';
 
 @Controller('tutor-notes')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -23,8 +27,13 @@ export class TutorNotesController {
   constructor(private readonly tutorNotesService: TutorNotesService) {}
 
   @Post('generate')
-  generate(@CurrentUser() user: JwtPayload, @Body() dto: GenerateTutorNoteDto) {
-    return this.tutorNotesService.generate(user.sub, dto);
+  @UseInterceptors(FileInterceptor('attachment', attachmentUploadOptions))
+  generate(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: GenerateTutorNoteDto,
+    @UploadedFile() attachment?: Express.Multer.File,
+  ) {
+    return this.tutorNotesService.generate(user.sub, dto, attachment);
   }
 
   @Get()

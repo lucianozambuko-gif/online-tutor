@@ -20,10 +20,13 @@ export class ApiError extends Error {
 }
 
 async function apiFetch(path: string, init?: RequestInit) {
+  // A FormData body (file uploads) must NOT get a manual Content-Type — the
+  // browser sets one itself with the correct multipart boundary.
+  const isFormData = init?.body instanceof FormData;
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: isFormData ? { ...init?.headers } : { "Content-Type": "application/json", ...init?.headers },
   });
 
   if (!res.ok) {
@@ -153,6 +156,8 @@ export interface AiMessage {
   id: string;
   role: "USER" | "ASSISTANT";
   content: string;
+  imageData: string | null;
+  imageMimeType: string | null;
   createdAt: string;
 }
 
@@ -160,8 +165,11 @@ export function listAiMessages(): Promise<AiMessage[]> {
   return apiFetch("/ai/messages");
 }
 
-export function sendAiMessage(content: string): Promise<AiMessage> {
-  return apiFetch("/ai/messages", { method: "POST", body: JSON.stringify({ content }) });
+export function sendAiMessage(content: string, image?: File): Promise<AiMessage> {
+  const form = new FormData();
+  form.append("content", content);
+  if (image) form.append("image", image);
+  return apiFetch("/ai/messages", { method: "POST", body: form });
 }
 
 export interface Note {
@@ -332,6 +340,9 @@ export interface TutorNote {
   bookingId: string | null;
   topic: string;
   content: string;
+  attachmentData: string | null;
+  attachmentMimeType: string | null;
+  attachmentName: string | null;
   createdAt: string;
   student: { id: string; name: string };
 }
@@ -341,8 +352,15 @@ export function generateTutorNote(data: {
   topic: string;
   rawInput: string;
   bookingId?: string;
+  attachment?: File;
 }): Promise<TutorNote> {
-  return apiFetch("/tutor-notes/generate", { method: "POST", body: JSON.stringify(data) });
+  const form = new FormData();
+  form.append("studentId", data.studentId);
+  form.append("topic", data.topic);
+  form.append("rawInput", data.rawInput);
+  if (data.bookingId) form.append("bookingId", data.bookingId);
+  if (data.attachment) form.append("attachment", data.attachment);
+  return apiFetch("/tutor-notes/generate", { method: "POST", body: form });
 }
 
 export function listTutorNotes(studentId?: string): Promise<TutorNote[]> {
