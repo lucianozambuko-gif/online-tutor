@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroqService, type GroqMessage } from '../groq/groq.service';
 import { AiMessageRole } from '../prisma/prisma-enums';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 const DEFAULT_VISION_MODEL = 'qwen/qwen3.6-27b';
 
@@ -14,15 +15,12 @@ const SYSTEM_PROMPT = `You are a friendly, patient AI study helper on a South Af
 - If you're not confident about a fact, say so rather than guessing.
 - Format any math with $...$ for inline and $$...$$ for display equations (not \\( \\) or \\[ \\]) — the chat renders LaTeX via KaTeX using that syntax.`;
 
-// How many prior messages to actually send as context — full history stays in
-// the DB, but an unbounded window would grow token cost/latency forever.
-const MAX_HISTORY_MESSAGES = 20;
-
 @Injectable()
 export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groq: GroqService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async getConversation(studentId: string) {
@@ -48,6 +46,12 @@ export class AiService {
       throw new BadRequestException('Type a message or attach an image first');
     }
 
+    const plan = await this.subscriptions.checkAndIncrementUsage(
+      studentId,
+      'AI_MESSAGE',
+      { requiresVision: !!image },
+    );
+
     const conversation = await this.getConversation(studentId);
 
     // Built from history BEFORE the current turn is inserted, so the image
@@ -57,7 +61,9 @@ export class AiService {
       where: { conversationId: conversation.id },
       orderBy: { createdAt: 'asc' },
     });
-    const priorHistory = priorMessages.slice(-MAX_HISTORY_MESSAGES);
+    const priorHistory = priorMessages.slice(
+      -this.subscriptions.historyMessageLimit(plan),
+    );
 
     const imageData = image ? image.buffer.toString('base64') : null;
     const imageMimeType = image?.mimetype ?? null;

@@ -481,3 +481,42 @@ export function listAllIssueReports(): Promise<AdminIssueReport[]> {
 export function updateIssueReport(id: string, data: { status: IssueStatus; adminNotes?: string }): Promise<AdminIssueReport> {
   return apiFetch(`/issues/${id}`, { method: "PATCH", body: JSON.stringify(data) });
 }
+
+export type SubscriptionPlan = "FREE" | "PLUS" | "PRO";
+export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "CANCELLED";
+
+export interface SubscriptionSummary {
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  periodEnd: string | null;
+  aiMessagesUsed: number;
+  aiMessagesLimit: number | null;
+  generationsUsed: number;
+  generationsLimit: number | null;
+  canUseVision: boolean;
+}
+
+export function getMySubscription(): Promise<SubscriptionSummary> {
+  return apiFetch("/subscriptions/me");
+}
+
+export function upgradeSubscription(plan: "PLUS" | "PRO"): Promise<{ actionUrl: string; fields: Record<string, string> }> {
+  return apiFetch("/subscriptions/upgrade", { method: "POST", body: JSON.stringify({ plan }) });
+}
+
+export function cancelSubscription(): Promise<unknown> {
+  return apiFetch("/subscriptions/cancel", { method: "POST" });
+}
+
+export interface AdminSubscription {
+  id: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  periodEnd: string | null;
+  updatedAt: string;
+  student: { id: string; name: string; email: string };
+}
+
+export function listAdminSubscriptions(): Promise<AdminSubscription[]> {
+  return apiFetch("/subscriptions/admin/list");
+}

@@ -81,6 +81,15 @@ function AiHelperIcon() {
   );
 }
 
+function SubscriptionIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 8l4 3 5-6 5 6 4-3-1.5 10h-15z" />
+      <path d="M6.5 18h11" />
+    </svg>
+  );
+}
+
 function ReportIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -134,6 +143,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/student/library",
     icon: <LibraryIcon />,
     match: (p) => p.startsWith("/student/library"),
+  },
+  {
+    label: "Subscription",
+    href: "/student/subscription",
+    icon: <SubscriptionIcon />,
+    match: (p) => p.startsWith("/student/subscription"),
   },
 ];
 

@@ -11,12 +11,14 @@ import {
   setTutorVerification,
   listAllIssueReports,
   updateIssueReport,
+  listAdminSubscriptions,
   ApiError,
   type AdminUser,
   type Payout,
   type AdminTutor,
   type AdminIssueReport,
   type IssueStatus,
+  type AdminSubscription,
 } from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -49,6 +51,10 @@ export default function AdminDashboard() {
   const [updatingIssueId, setUpdatingIssueId] = useState<string | null>(null);
   const [issueNotes, setIssueNotes] = useState<Record<string, string>>({});
 
+  const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
+  const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
+  const [subscriptionsError, setSubscriptionsError] = useState<string | null>(null);
+
   function load() {
     listUsers()
       .then(setUsers)
@@ -64,6 +70,13 @@ export default function AdminDashboard() {
   }
 
   useEffect(loadPayouts, []);
+
+  useEffect(() => {
+    listAdminSubscriptions()
+      .then(setSubscriptions)
+      .catch((err) => setSubscriptionsError(err instanceof ApiError ? err.message : "Failed to load subscriptions"))
+      .finally(() => setSubscriptionsLoading(false));
+  }, []);
 
   function loadTutors() {
     listAdminTutors()
@@ -331,6 +344,43 @@ export default function AdminDashboard() {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Subscriptions</h2>
+          <p className="mt-1 text-sm text-ink-500">Students currently on a paid plan.</p>
+        </div>
+
+        {subscriptionsError && (
+          <div className="mt-4">
+            <ErrorText>{subscriptionsError}</ErrorText>
+          </div>
+        )}
+
+        {subscriptionsLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading subscriptions...</p>
+        ) : subscriptions.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No students on a paid plan yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {subscriptions.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-700/10 p-4">
+                <div>
+                  <p className="text-sm font-medium text-ink-900">{s.student.name}</p>
+                  <p className="text-xs text-ink-500">{s.student.email}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-ink-900">{s.plan}</span>
+                  <StatusBadge status={s.status} />
+                  {s.periodEnd && (
+                    <span className="text-xs text-ink-300">until {formatDate(s.periodEnd)}</span>
+                  )}
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </Card>

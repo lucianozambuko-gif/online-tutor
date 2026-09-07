@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GroqService, truncateForContext } from '../groq/groq.service';
 import { GenerateQuizDto } from './dto/generate-quiz.dto';
 import { SubmitQuizDto } from './dto/submit-quiz.dto';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 const SYSTEM_PROMPT =
   'You generate practice quiz questions for school students. Respond with ONLY valid JSON, no markdown. Write any math/chemistry notation in plain LaTeX with $...$ delimiters (e.g. $C_6H_{12}O_6$), never as unicode subscript/superscript characters or \\u escapes — those break JSON parsing.';
@@ -24,9 +25,12 @@ export class QuizzesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groq: GroqService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async generate(studentId: string, dto: GenerateQuizDto) {
+    await this.subscriptions.checkAndIncrementUsage(studentId, 'GENERATION');
+
     let topic = dto.topic;
     let sourceText: string | undefined;
 

@@ -16,6 +16,18 @@ enum Role {
   ADMIN
 }
 
+enum SubscriptionPlan {
+  FREE
+  PLUS
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
 enum UserStatus {
   PENDING_GUARDIAN_CONSENT
   ACTIVE
@@ -120,6 +132,8 @@ model User {
 
   paymentsMade Payment[]
   payouts      Payout[]
+
+  subscription Subscription?
 
   sentMessages              Message[]
   conversationParticipants  ConversationParticipant[]
@@ -363,6 +377,26 @@ model Payout {
   createdAt    DateTime     @default(now())
 
   payments Payment[]
+}
+
+// One row per student, lazily created as FREE on first use. periodStart/
+// periodEnd bound the current usage window — for FREE this is just a rolling
+// 30 days from periodStart (reset lazily whenever it's checked); for a paid
+// plan it's the current PayFast billing cycle, extended by the ITN handler on
+// each successful renewal charge.
+model Subscription {
+  id             String             @id @default(cuid())
+  studentId      String             @unique
+  student        User               @relation(fields: [studentId], references: [id])
+  plan           SubscriptionPlan   @default(FREE)
+  status         SubscriptionStatus @default(ACTIVE)
+  payfastToken   String?
+  periodStart    DateTime           @default(now())
+  periodEnd      DateTime?
+  aiMessagesUsed Int                @default(0)
+  generationsUsed Int               @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 }
 
 model Conversation {

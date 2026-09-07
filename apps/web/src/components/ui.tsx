@@ -70,6 +70,7 @@ const STATUS_STYLE: Record<string, string> = {
   PAID: "bg-emerald-100 text-emerald-700",
   APPROVED: "bg-emerald-100 text-emerald-700",
   CANCELLED: "bg-ink-700/8 text-ink-500",
+  PAST_DUE: "bg-gold-300/25 text-gold-600",
   FAILED: "bg-red-100 text-red-700",
   DISPUTED: "bg-red-100 text-red-700",
   SUSPENDED: "bg-red-100 text-red-700",

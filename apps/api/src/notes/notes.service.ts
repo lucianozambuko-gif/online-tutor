@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GroqService } from '../groq/groq.service';
 import { GenerateNoteDto } from './dto/generate-note.dto';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 const SYSTEM_PROMPT =
   'You write clear, well-structured study notes for school and university students, using markdown headings and bullet points. Base notes strictly on the given topic and any supplied source material — never invent facts. Format any math with $...$ inline or $$...$$ display delimiters.';
@@ -11,9 +12,12 @@ export class NotesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groq: GroqService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async generate(studentId: string, dto: GenerateNoteDto) {
+    await this.subscriptions.checkAndIncrementUsage(studentId, 'GENERATION');
+
     const userPrompt = dto.sourceText
       ? `Topic: ${dto.topic}\nSubject: ${dto.subject ?? 'general'}\nSource material:\n${dto.sourceText}`
       : `Topic: ${dto.topic}\nSubject: ${dto.subject ?? 'general'}`;

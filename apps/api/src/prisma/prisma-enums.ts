@@ -12,4 +12,6 @@ export {
   VerificationStatus,
   DisputeStatus,
   IssueCategory,
+  SubscriptionPlan,
+  SubscriptionStatus,
 } from '../../generated/prisma/client';

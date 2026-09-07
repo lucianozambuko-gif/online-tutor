@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { listAiMessages, sendAiMessage, ApiError, type AiMessage } from "@/lib/api";
+import { listAiMessages, sendAiMessage, getMySubscription, ApiError, type AiMessage, type SubscriptionSummary } from "@/lib/api";
 import { Card, inputClass, buttonClass, ErrorText } from "@/components/ui";
 import { MarkdownContent } from "@/components/markdown-content";
 
@@ -36,8 +37,15 @@ export function AiHelperChat() {
   const imagePreviewUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionSummary | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function loadSubscription() {
+    getMySubscription()
+      .then(setSubscription)
+      .catch(() => {});
+  }
 
   useEffect(() => {
     listAiMessages()
@@ -45,6 +53,8 @@ export function AiHelperChat() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load chat"))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(loadSubscription, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -100,11 +110,20 @@ export function AiHelperChat() {
     try {
       const reply = await sendAiMessage(content, pendingImage ?? undefined);
       setMessages((prev) => [...prev, reply]);
+      loadSubscription();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");
     } finally {
       setSending(false);
     }
+  }
+
+  function handleAttachClick() {
+    if (subscription && !subscription.canUseVision) {
+      setError("Attaching photos is available on the Plus and Pro plans.");
+      return;
+    }
+    fileInputRef.current?.click();
   }
 
   return (
@@ -114,6 +133,15 @@ export function AiHelperChat() {
         Ask about anything you&apos;re studying, or attach a photo of a problem — it&apos;ll help you work through
         it, not just hand you the answer.
       </p>
+      {subscription && subscription.aiMessagesLimit !== null && (
+        <p className="mt-2 text-xs text-ink-300">
+          {subscription.aiMessagesUsed} / {subscription.aiMessagesLimit} messages used this month on the{" "}
+          {subscription.plan} plan ·{" "}
+          <Link href="/student/subscription" className="font-semibold text-sky-700 hover:text-sky-600">
+            Upgrade
+          </Link>
+        </p>
+      )}
 
       <div className="mt-5 flex h-96 flex-col overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-4">
         {loading ? (
@@ -177,7 +205,7 @@ export function AiHelperChat() {
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePickImage} className="hidden" />
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={handleAttachClick}
           disabled={sending}
           aria-label="Attach an image"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-700/15 bg-white text-ink-500 transition hover:border-sky-400/50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
