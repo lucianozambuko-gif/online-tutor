@@ -255,6 +255,7 @@ export interface AiMessage {
   content: string;
   imageData: string | null;
   imageMimeType: string | null;
+  documentName: string | null;
   createdAt: string;
 }
 
@@ -262,10 +263,11 @@ export function listAiMessages(): Promise<AiMessage[]> {
   return apiFetch("/ai/messages");
 }
 
-export function sendAiMessage(content: string, image?: File): Promise<AiMessage> {
+export function sendAiMessage(content: string, image?: File, document?: File): Promise<AiMessage> {
   const form = new FormData();
   form.append("content", content);
   if (image) form.append("image", image);
+  if (document) form.append("document", document);
   return apiFetch("/ai/messages", { method: "POST", body: form });
 }
 

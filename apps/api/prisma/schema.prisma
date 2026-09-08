@@ -188,6 +188,11 @@ model AiMessage {
   // size limit enforced in the controller.
   imageData      String?
   imageMimeType  String?
+  // A PDF/Word document the student attached — unlike images, this is free
+  // on every plan, so we store the already-extracted text (not the raw file)
+  // rather than gating it behind vision.
+  documentText   String?
+  documentName   String?
   createdAt      DateTime       @default(now())
 }
 

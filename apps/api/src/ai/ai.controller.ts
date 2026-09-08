@@ -3,11 +3,11 @@ import {
   Controller,
   Get,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,7 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
-import { imageUploadOptions } from '../common/upload';
+import { aiAttachmentUploadOptions } from '../common/upload';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -31,12 +31,29 @@ export class AiController {
   }
 
   @Post('messages')
-  @UseInterceptors(FileInterceptor('image', imageUploadOptions))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'image', maxCount: 1 },
+        { name: 'document', maxCount: 1 },
+      ],
+      aiAttachmentUploadOptions,
+    ),
+  )
   sendMessage(
     @CurrentUser() user: JwtPayload,
     @Body() dto: SendMessageDto,
-    @UploadedFile() image?: Express.Multer.File,
+    @UploadedFiles()
+    files: {
+      image?: Express.Multer.File[];
+      document?: Express.Multer.File[];
+    },
   ) {
-    return this.aiService.sendMessage(user.sub, dto.content, image);
+    return this.aiService.sendMessage(
+      user.sub,
+      dto.content,
+      files.image?.[0],
+      files.document?.[0],
+    );
   }
 }

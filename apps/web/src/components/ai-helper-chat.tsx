@@ -7,6 +7,9 @@ import { Card, inputClass, buttonClass, ErrorText } from "@/components/ui";
 import { MarkdownContent } from "@/components/markdown-content";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_DOCUMENT_TYPES =
+  "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.docx";
 
 // The optimistic bubble shown right after sending needs to preview the
 // picked File immediately (via a local object URL) — the server hasn't
@@ -17,6 +20,14 @@ function PlusIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function PaperclipIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 9.5 12.5 18a4 4 0 0 1-5.7-5.7L15 4a2.7 2.7 0 0 1 3.8 3.8L10 16.5a1.3 1.3 0 0 1-1.9-1.8L15.5 7" />
     </svg>
   );
 }
@@ -34,12 +45,14 @@ export function AiHelperChat() {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [documentFile, setDocument] = useState<File | null>(null);
   const imagePreviewUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionSummary | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
 
   function loadSubscription() {
     getMySubscription()
@@ -79,21 +92,43 @@ export function AiHelperChat() {
       return;
     }
     setError(null);
+    setDocument(null);
     setImage(file);
+  }
+
+  function handlePickDocument(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const isPdf = file.type === "application/pdf";
+    const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (!isPdf && !isDocx) {
+      setError("Only PDF or Word (.docx) documents can be attached.");
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      setError("That file is too large — please attach one under 5MB.");
+      return;
+    }
+    setError(null);
+    setImage(null);
+    setDocument(file);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
-    if ((!content && !image) || sending) return;
+    if ((!content && !image && !documentFile) || sending) return;
 
     const pendingImage = image;
+    const pendingDocument = documentFile;
     const pendingPreviewUrl = imagePreviewUrl;
 
     setError(null);
     setSending(true);
     setDraft("");
     setImage(null);
+    setDocument(null);
     setMessages((prev) => [
       ...prev,
       {
@@ -102,13 +137,14 @@ export function AiHelperChat() {
         content,
         imageData: null,
         imageMimeType: pendingImage?.type ?? null,
+        documentName: pendingDocument?.name ?? null,
         createdAt: new Date().toISOString(),
         previewUrl: pendingPreviewUrl,
       },
     ]);
 
     try {
-      const reply = await sendAiMessage(content, pendingImage ?? undefined);
+      const reply = await sendAiMessage(content, pendingImage ?? undefined, pendingDocument ?? undefined);
       setMessages((prev) => [...prev, reply]);
       loadSubscription();
     } catch (err) {
@@ -118,20 +154,21 @@ export function AiHelperChat() {
     }
   }
 
-  function handleAttachClick() {
+  function handleAttachImageClick() {
     if (subscription && !subscription.canUseVision) {
       setError("Attaching photos is available on the Plus and Pro plans.");
       return;
     }
-    fileInputRef.current?.click();
+    imageInputRef.current?.click();
   }
 
   return (
     <Card>
       <h2 className="font-display text-lg font-semibold text-ink-900">Study helper</h2>
       <p className="mt-1 text-sm text-ink-500">
-        Ask about anything you&apos;re studying, or attach a photo of a problem — it&apos;ll help you work through
-        it, not just hand you the answer.
+        Ask about anything you&apos;re studying, attach a photo of a problem or a PDF/Word document, or ask it to
+        format your references or review your own writing for originality issues — it&apos;ll help you work
+        through things, not just hand you the answer.
       </p>
       {subscription && subscription.aiMessagesLimit !== null && (
         <p className="mt-2 text-xs text-ink-300">
@@ -164,6 +201,16 @@ export function AiHelperChat() {
                   {imageSrc && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imageSrc} alt="Attached" className="mb-2 max-h-48 rounded-lg border border-white/20 object-contain" />
+                  )}
+                  {m.documentName && (
+                    <span
+                      className={`mb-2 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                        m.role === "USER" ? "border-white/25 text-white/90" : "border-ink-700/15 text-ink-500"
+                      }`}
+                    >
+                      <PaperclipIcon />
+                      {m.documentName}
+                    </span>
                   )}
                   {m.content && (m.role === "USER" ? m.content : <MarkdownContent content={m.content} />)}
                 </div>
@@ -201,16 +248,43 @@ export function AiHelperChat() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-3">
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePickImage} className="hidden" />
+      {documentFile && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-ink-700/10 bg-white px-3 py-2">
+          <PaperclipIcon />
+          <span className="flex-1 truncate text-xs text-ink-500">{documentFile.name}</span>
+          <button
+            type="button"
+            onClick={() => setDocument(null)}
+            aria-label="Remove attached document"
+            className="text-ink-300 transition hover:text-ink-700"
+          >
+            <XIcon />
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-4 flex gap-2 sm:gap-3">
+        <input ref={imageInputRef} type="file" accept="image/*" onChange={handlePickImage} className="hidden" />
+        <input ref={documentInputRef} type="file" accept={ACCEPTED_DOCUMENT_TYPES} onChange={handlePickDocument} className="hidden" />
         <button
           type="button"
-          onClick={handleAttachClick}
+          onClick={handleAttachImageClick}
           disabled={sending}
-          aria-label="Attach an image"
+          aria-label="Attach a photo"
+          title="Attach a photo"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-700/15 bg-white text-ink-500 transition hover:border-sky-400/50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <PlusIcon />
+        </button>
+        <button
+          type="button"
+          onClick={() => documentInputRef.current?.click()}
+          disabled={sending}
+          aria-label="Attach a document"
+          title="Attach a PDF or Word document"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-700/15 bg-white text-ink-500 transition hover:border-sky-400/50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <PaperclipIcon />
         </button>
         <input
           className={inputClass}
@@ -219,7 +293,7 @@ export function AiHelperChat() {
           onChange={(e) => setDraft(e.target.value)}
           disabled={sending}
         />
-        <button type="submit" disabled={sending || (!draft.trim() && !image)} className={buttonClass("primary")}>
+        <button type="submit" disabled={sending || (!draft.trim() && !image && !documentFile)} className={buttonClass("primary")}>
           Send
         </button>
       </form>
