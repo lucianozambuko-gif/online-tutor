@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
+import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -35,5 +36,12 @@ export class PaymentsController {
   @HttpCode(HttpStatus.OK)
   notify(@Body() body: Record<string, string>) {
     return this.paymentsService.handleNotify(body);
+  }
+
+  @Post(':id/refund')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  refund(@Param('id') id: string, @Body() dto: RefundPaymentDto) {
+    return this.paymentsService.refund(id, dto);
   }
 }

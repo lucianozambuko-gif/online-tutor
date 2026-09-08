@@ -12,7 +12,7 @@ import {
   generatePayfastSignature,
   getPayfastBaseUrl,
 } from '../payments/payfast.util';
-import { callSubscriptionApi } from '../payments/payfast-subscription.util';
+import { callSubscriptionApi } from '../payments/payfast-management-api.util';
 import {
   FREE_AI_MESSAGE_WINDOW_MS,
   PLAN_LIMITS,

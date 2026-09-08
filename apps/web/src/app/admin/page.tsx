@@ -13,6 +13,7 @@ import {
   listAllIssueReports,
   updateIssueReport,
   listAdminSubscriptions,
+  refundPayment,
   ApiError,
   GRADE_LEVEL_LABELS,
   type AdminUser,
@@ -21,6 +22,7 @@ import {
   type AdminIssueReport,
   type IssueStatus,
   type AdminSubscription,
+  type AdminPayment,
 } from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -52,6 +54,9 @@ export default function AdminDashboard() {
   const [issuesError, setIssuesError] = useState<string | null>(null);
   const [updatingIssueId, setUpdatingIssueId] = useState<string | null>(null);
   const [issueNotes, setIssueNotes] = useState<Record<string, string>>({});
+  const [refundForms, setRefundForms] = useState<Record<string, { amount: string; reason: string }>>({});
+  const [refundingPaymentId, setRefundingPaymentId] = useState<string | null>(null);
+  const [refundError, setRefundError] = useState<string | null>(null);
 
   const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
@@ -138,6 +143,32 @@ export default function AdminDashboard() {
       setIssuesError(err instanceof ApiError ? err.message : "Failed to update this report");
     } finally {
       setUpdatingIssueId(null);
+    }
+  }
+
+  async function handleRefund(payment: AdminPayment) {
+    const form = refundForms[payment.id] ?? { amount: "", reason: "" };
+    if (!form.reason.trim()) {
+      setRefundError("Enter a reason for the refund.");
+      return;
+    }
+    const amountLabel = form.amount ? `R${form.amount}` : "the full remaining amount";
+    if (!window.confirm(`Refund ${amountLabel} for this payment via PayFast?`)) return;
+
+    setRefundingPaymentId(payment.id);
+    setRefundError(null);
+    try {
+      await refundPayment(payment.id, {
+        amount: form.amount ? Number(form.amount) : undefined,
+        reason: form.reason.trim(),
+      });
+      setRefundForms((prev) => ({ ...prev, [payment.id]: { amount: "", reason: "" } }));
+      setIssuesLoading(true);
+      loadIssues();
+    } catch (err) {
+      setRefundError(err instanceof ApiError ? err.message : "Failed to process refund");
+    } finally {
+      setRefundingPaymentId(null);
     }
   }
 
@@ -333,6 +364,11 @@ export default function AdminDashboard() {
             <ErrorText>{issuesError}</ErrorText>
           </div>
         )}
+        {refundError && (
+          <div className="mt-4">
+            <ErrorText>{refundError}</ErrorText>
+          </div>
+        )}
 
         {issuesLoading ? (
           <p className="mt-4 text-sm text-ink-500">Loading issue reports...</p>
@@ -342,6 +378,8 @@ export default function AdminDashboard() {
           <ul className="mt-4 space-y-4">
             {issues.map((issue) => {
               const busy = updatingIssueId === issue.id;
+              const payment = issue.booking?.payment ?? null;
+              const refundForm = payment ? (refundForms[payment.id] ?? { amount: "", reason: "" }) : null;
               return (
                 <li key={issue.id} className="rounded-xl border border-ink-700/10 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -354,6 +392,70 @@ export default function AdminDashboard() {
                     <StatusBadge status={issue.status} />
                   </div>
                   <p className="mt-2 text-sm text-ink-700">{issue.description}</p>
+                  {payment && (
+                    <div className="mt-3 rounded-lg border border-ink-700/10 bg-cream/40 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs text-ink-500">
+                          Booking: {issue.booking?.subject} · R{payment.amount}
+                        </p>
+                        <StatusBadge status={payment.status} />
+                      </div>
+                      {payment.refundedAmount && (
+                        <p className="mt-1 text-xs text-ink-300">
+                          Refunded R{payment.refundedAmount} so far
+                          {payment.refundReason ? ` — "${payment.refundReason}"` : ""}
+                        </p>
+                      )}
+                      {(payment.status === "PAID" || payment.status === "PARTIALLY_REFUNDED") && refundForm && (
+                        <div className="mt-2 flex flex-wrap items-end gap-2">
+                          <div>
+                            <label htmlFor={`refund-amount-${payment.id}`} className="block text-[11px] text-ink-300">
+                              Amount (optional, full if blank)
+                            </label>
+                            <input
+                              id={`refund-amount-${payment.id}`}
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={refundForm.amount}
+                              onChange={(e) =>
+                                setRefundForms((prev) => ({
+                                  ...prev,
+                                  [payment.id]: { ...refundForm, amount: e.target.value },
+                                }))
+                              }
+                              className="w-28 rounded-lg border border-ink-700/15 bg-white px-2 py-1.5 text-xs text-ink-900 outline-none focus:border-sky-400"
+                            />
+                          </div>
+                          <div className="min-w-[160px] flex-1">
+                            <label htmlFor={`refund-reason-${payment.id}`} className="block text-[11px] text-ink-300">
+                              Reason
+                            </label>
+                            <input
+                              id={`refund-reason-${payment.id}`}
+                              type="text"
+                              value={refundForm.reason}
+                              onChange={(e) =>
+                                setRefundForms((prev) => ({
+                                  ...prev,
+                                  [payment.id]: { ...refundForm, reason: e.target.value },
+                                }))
+                              }
+                              className="w-full rounded-lg border border-ink-700/15 bg-white px-2 py-1.5 text-xs text-ink-900 outline-none focus:border-sky-400"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            disabled={refundingPaymentId === payment.id}
+                            onClick={() => handleRefund(payment)}
+                            className={buttonClass("danger", "px-3 py-1.5 text-xs")}
+                          >
+                            {refundingPaymentId === payment.id ? "Refunding..." : "Refund"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <textarea
                     value={issueNotes[issue.id] ?? issue.adminNotes ?? ""}
                     onChange={(e) => setIssueNotes((prev) => ({ ...prev, [issue.id]: e.target.value }))}

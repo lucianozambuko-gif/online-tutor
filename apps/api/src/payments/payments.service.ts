@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ForbiddenException,
   Injectable,
@@ -8,6 +9,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentStatus } from '../prisma/prisma-enums';
 import { generatePayfastSignature, getPayfastBaseUrl } from './payfast.util';
+import { callRefundApi } from './payfast-management-api.util';
+import { RefundPaymentDto } from './dto/refund-payment.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -102,8 +105,93 @@ export class PaymentsService {
         where: { id: payment.id },
         data: { status: PaymentStatus.FAILED },
       });
+    } else {
+      this.logger.warn(
+        `Unhandled PayFast ITN payment_status="${body.payment_status}" for payment=${payment.id}`,
+      );
     }
 
     return { received: true };
+  }
+
+  // Admin-only. Calls PayFast's real refund API against the transaction's
+  // pf_payment_id (captured from the ITN above) — NOTE this cannot be tested
+  // in PayFast's sandbox, which rejects refund calls outright; it needs to be
+  // exercised against live credentials before being trusted in production.
+  async refund(paymentId: string, dto: RefundPaymentDto) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+    if (
+      payment.status !== PaymentStatus.PAID &&
+      payment.status !== PaymentStatus.PARTIALLY_REFUNDED
+    ) {
+      throw new BadRequestException(
+        `Payment is ${payment.status.toLowerCase()}, not paid — nothing to refund`,
+      );
+    }
+    if (!payment.payfastRef) {
+      throw new BadRequestException(
+        'This payment has no PayFast reference to refund against',
+      );
+    }
+
+    const alreadyRefunded = Number(payment.refundedAmount ?? 0);
+    const totalAmount = Number(payment.amount);
+    const remaining = Math.round((totalAmount - alreadyRefunded) * 100) / 100;
+
+    if (remaining <= 0) {
+      throw new BadRequestException(
+        'This payment has already been fully refunded',
+      );
+    }
+
+    const refundAmountRand = dto.amount ?? remaining;
+    if (refundAmountRand > remaining) {
+      throw new BadRequestException(
+        `You can refund at most R${remaining.toFixed(2)} more on this payment`,
+      );
+    }
+
+    const { status, data } = await callRefundApi(
+      payment.payfastRef,
+      {
+        merchantId: process.env.PAYFAST_MERCHANT_ID ?? '',
+        passphrase: process.env.PAYFAST_PASSPHRASE,
+        sandbox: process.env.PAYFAST_SANDBOX !== 'false',
+      },
+      {
+        amount: Math.round(refundAmountRand * 100),
+        reason: dto.reason,
+      },
+    );
+
+    if (status >= 400) {
+      this.logger.error(
+        `PayFast refund failed for payment=${paymentId}, status=${status}, response=${JSON.stringify(data)}`,
+      );
+      throw new BadGatewayException(
+        "PayFast rejected the refund — check the server logs for details, or refund it directly from PayFast's merchant dashboard.",
+      );
+    }
+
+    const newRefundedAmount =
+      Math.round((alreadyRefunded + refundAmountRand) * 100) / 100;
+    const isFullyRefunded = newRefundedAmount >= totalAmount;
+
+    return this.prisma.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: isFullyRefunded
+          ? PaymentStatus.REFUNDED
+          : PaymentStatus.PARTIALLY_REFUNDED,
+        refundedAmount: newRefundedAmount,
+        refundReason: dto.reason,
+        refundedAt: new Date(),
+      },
+    });
   }
 }

@@ -183,7 +183,7 @@ export function setTutorVerification(tutorId: string, status: VerificationStatus
 }
 
 export type BookingStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "DISPUTED";
-export type PaymentStatus = "PENDING" | "PAID" | "REFUNDED" | "FAILED";
+export type PaymentStatus = "PENDING" | "PAID" | "PARTIALLY_REFUNDED" | "REFUNDED" | "FAILED";
 
 export interface Booking {
   id: string;
@@ -520,8 +520,22 @@ export interface IssueReport {
   updatedAt: string;
 }
 
+export interface AdminPayment {
+  id: string;
+  amount: string;
+  status: PaymentStatus;
+  refundedAmount: string | null;
+  refundReason: string | null;
+  refundedAt: string | null;
+}
+
 export interface AdminIssueReport extends IssueReport {
   reporter: { id: string; name: string; email: string; role: "STUDENT" | "TUTOR" | "ADMIN" };
+  booking: { id: string; subject: string; payment: AdminPayment | null } | null;
+}
+
+export function refundPayment(paymentId: string, data: { amount?: number; reason: string }): Promise<AdminPayment> {
+  return apiFetch(`/payments/${paymentId}/refund`, { method: "POST", body: JSON.stringify(data) });
 }
 
 export function createIssueReport(data: {

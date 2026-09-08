@@ -69,6 +69,7 @@ enum PaymentMethod {
 enum PaymentStatus {
   PENDING
   PAID
+  PARTIALLY_REFUNDED
   REFUNDED
   FAILED
 }
@@ -388,6 +389,12 @@ model Payment {
   payfastRef        String?
   payoutId          String?
   payout            Payout?       @relation(fields: [payoutId], references: [id])
+  // Set once a refund (full or partial) has actually gone through via
+  // PayFast's refund API — refundedAmount is the cumulative total refunded
+  // so far, in rand, not just the most recent refund.
+  refundedAmount    Decimal?      @db.Decimal(10, 2)
+  refundReason      String?
+  refundedAt        DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 }

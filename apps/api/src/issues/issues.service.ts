@@ -50,7 +50,10 @@ export class IssuesService {
   adminList() {
     return this.prisma.issueReport.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { reporter: { select: REPORTER_SELECT } },
+      include: {
+        reporter: { select: REPORTER_SELECT },
+        booking: { select: { id: true, subject: true, payment: true } },
+      },
     });
   }
 

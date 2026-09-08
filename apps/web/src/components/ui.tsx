@@ -76,6 +76,8 @@ const STATUS_STYLE: Record<string, string> = {
   DISPUTED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   SUSPENDED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   REJECTED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+  REFUNDED: "bg-ink-700/8 text-ink-500",
+  PARTIALLY_REFUNDED: "bg-gold-300/25 text-gold-600",
 };
 
 export function StatusBadge({ status }: { status: string }) {
