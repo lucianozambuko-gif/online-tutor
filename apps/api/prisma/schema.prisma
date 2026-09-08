@@ -258,13 +258,21 @@ model QuizQuestion {
 }
 
 model StudentProfile {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id])
+  id                 String           @id @default(cuid())
+  userId             String           @unique
+  user               User             @relation(fields: [userId], references: [id])
   gradeLevel         String?
+  institutionType    InstitutionType?
   subjectsOfInterest String[]
   guardianId         String?
-  guardian           User?    @relation("Guardian", fields: [guardianId], references: [id])
+  guardian           User?            @relation("Guardian", fields: [guardianId], references: [id])
+}
+
+enum InstitutionType {
+  SCHOOL
+  COLLEGE
+  VARSITY
+  ONLINE_INSTITUTE
 }
 
 // Created at signup for a student who is under 18. Holds the single-use token

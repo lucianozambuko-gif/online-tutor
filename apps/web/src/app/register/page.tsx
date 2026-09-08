@@ -3,7 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { register, ApiError, type CurrentUser } from "@/lib/api";
+import { register, ApiError, INSTITUTION_TYPE_LABELS, type CurrentUser, type InstitutionType } from "@/lib/api";
 import { AuthShell } from "@/components/auth-shell";
 import { Field, inputClass, buttonClass, ErrorText } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -30,6 +30,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"STUDENT" | "TUTOR">("STUDENT");
+  const [grade, setGrade] = useState("");
+  const [institutionType, setInstitutionType] = useState<InstitutionType>("SCHOOL");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [guardianName, setGuardianName] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
@@ -52,6 +54,8 @@ export default function RegisterPage() {
         email,
         password,
         role,
+        grade: role === "STUDENT" ? grade : undefined,
+        institutionType: role === "STUDENT" ? institutionType : undefined,
         dateOfBirth: role === "STUDENT" ? dateOfBirth : undefined,
         guardianName: isMinorStudent ? guardianName : undefined,
         guardianEmail: isMinorStudent ? guardianEmail : undefined,
@@ -141,16 +145,41 @@ export default function RegisterPage() {
           </select>
         </Field>
         {role === "STUDENT" && (
-          <Field label="Date of birth" htmlFor="dob">
-            <input
-              id="dob"
-              type="date"
-              required
-              className={inputClass}
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-            />
-          </Field>
+          <>
+            <Field label="Grade" htmlFor="grade" hint="e.g. Grade 10, 1st year, Diploma in IT">
+              <input
+                id="grade"
+                required
+                className={inputClass}
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+              />
+            </Field>
+            <Field label="Institution type" htmlFor="institutionType">
+              <select
+                id="institutionType"
+                className={inputClass}
+                value={institutionType}
+                onChange={(e) => setInstitutionType(e.target.value as InstitutionType)}
+              >
+                {Object.entries(INSTITUTION_TYPE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Date of birth" htmlFor="dob" hint="Only used to check whether parent/guardian consent is required.">
+              <input
+                id="dob"
+                type="date"
+                required
+                className={inputClass}
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+              />
+            </Field>
+          </>
         )}
         {isMinorStudent && (
           <fieldset className="space-y-4 rounded-xl border border-gold-400/30 bg-gold-300/10 p-4">

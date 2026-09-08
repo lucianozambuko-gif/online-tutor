@@ -1,12 +1,13 @@
 import {
   IsDateString,
   IsEmail,
+  IsEnum,
   IsIn,
   IsString,
   MinLength,
   ValidateIf,
 } from 'class-validator';
-import { Role } from '../../prisma/prisma-enums';
+import { InstitutionType, Role } from '../../prisma/prisma-enums';
 import { calculateAge, MINOR_AGE_CUTOFF } from '../../common/age';
 
 // Admin accounts are provisioned separately (see prisma/seed.ts), not self-service.
@@ -18,6 +19,10 @@ function isMinorStudent(dto: RegisterDto): boolean {
     !!dto.dateOfBirth &&
     calculateAge(new Date(dto.dateOfBirth)) < MINOR_AGE_CUTOFF
   );
+}
+
+function isStudent(dto: RegisterDto): boolean {
+  return dto.role === Role.STUDENT;
 }
 
 export class RegisterDto {
@@ -35,8 +40,20 @@ export class RegisterDto {
   @IsIn(SELF_REGISTERABLE_ROLES)
   role: (typeof SELF_REGISTERABLE_ROLES)[number];
 
-  // Required for students so we can detect minors and require guardian consent.
-  @ValidateIf((dto: RegisterDto) => dto.role === Role.STUDENT)
+  // What grade/year the student is in — free text since it varies wildly
+  // across school, college, varsity and online-institute study.
+  @ValidateIf(isStudent)
+  @IsString()
+  @MinLength(1)
+  grade?: string;
+
+  @ValidateIf(isStudent)
+  @IsEnum(InstitutionType)
+  institutionType?: InstitutionType;
+
+  // Not shown as a headline field anymore, but still required for students —
+  // it's the only thing that lets us detect minors and require guardian consent.
+  @ValidateIf(isStudent)
   @IsDateString()
   dateOfBirth?: string;
 

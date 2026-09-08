@@ -45,11 +45,22 @@ export function login(email: string, password: string): Promise<{ user: CurrentU
   return apiFetch("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
 }
 
+export type InstitutionType = "SCHOOL" | "COLLEGE" | "VARSITY" | "ONLINE_INSTITUTE";
+
+export const INSTITUTION_TYPE_LABELS: Record<InstitutionType, string> = {
+  SCHOOL: "School",
+  COLLEGE: "College",
+  VARSITY: "Varsity",
+  ONLINE_INSTITUTE: "Online institute",
+};
+
 export function register(data: {
   email: string;
   password: string;
   name: string;
   role: "STUDENT" | "TUTOR";
+  grade?: string;
+  institutionType?: InstitutionType;
   dateOfBirth?: string;
   guardianName?: string;
   guardianEmail?: string;

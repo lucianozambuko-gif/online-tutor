@@ -58,6 +58,8 @@ export class AuthService {
       role: dto.role,
       dateOfBirth,
       status: isMinor ? UserStatus.PENDING_GUARDIAN_CONSENT : UserStatus.ACTIVE,
+      grade: dto.grade,
+      institutionType: dto.institutionType,
     });
 
     let guardianConsentLink: string | undefined;

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, UserStatus } from '../prisma/prisma-enums';
+import { InstitutionType, Role, UserStatus } from '../prisma/prisma-enums';
 
 @Injectable()
 export class UsersService {
@@ -35,12 +35,20 @@ export class UsersService {
     role: Role;
     dateOfBirth?: Date;
     status?: UserStatus;
+    grade?: string;
+    institutionType?: InstitutionType;
   }) {
-    const user = await this.prisma.user.create({ data });
+    const { grade, institutionType, ...userData } = data;
+    const user = await this.prisma.user.create({ data: userData });
 
     if (data.role === Role.STUDENT) {
       await this.prisma.studentProfile.create({
-        data: { userId: user.id, subjectsOfInterest: [] },
+        data: {
+          userId: user.id,
+          subjectsOfInterest: [],
+          gradeLevel: grade,
+          institutionType,
+        },
       });
     } else if (data.role === Role.TUTOR) {
       await this.prisma.tutorProfile.create({
