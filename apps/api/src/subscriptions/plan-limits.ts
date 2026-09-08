@@ -19,7 +19,7 @@ export interface PlanLimits {
 // ~3 exchanges, easy to blow through in one real session.
 export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
   FREE: {
-    aiMessages: 5,
+    aiMessages: 20,
     generations: 10,
     vision: false,
     historyMessages: 14,

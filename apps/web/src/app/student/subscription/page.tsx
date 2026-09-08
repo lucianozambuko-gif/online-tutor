@@ -29,7 +29,7 @@ const PLAN_CARDS: PlanCard[] = [
     price: "R0",
     tagline: "Try Lumen AI out",
     features: [
-      "5 AI Helper messages every 5 hours",
+      "20 AI Helper messages every 5 hours",
       "10 notes/flashcards/quizzes / month",
       "Attach 1 PDF/Word document per message",
       "Text questions only, no photos",
