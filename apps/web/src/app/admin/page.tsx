@@ -190,18 +190,17 @@ export default function AdminDashboard() {
   }
 
   async function handleMarkPaid(payout: Payout) {
-    const reference = window.prompt(
-      `Enter the EFT reference/confirmation number for the R${Number(payout.totalAmount).toFixed(2)} payout to ${payout.tutor?.name}:`,
-    );
-    if (reference === null) return;
-    if (!reference.trim()) {
-      setPayoutError("A reference number is required to mark a payout as paid.");
+    if (
+      !window.confirm(
+        `Mark the R${Number(payout.totalAmount).toFixed(2)} payout to ${payout.tutor?.name} as paid? Reference: ${payout.reference ?? "none"}.`,
+      )
+    ) {
       return;
     }
     setMarkingPaidId(payout.id);
     setPayoutError(null);
     try {
-      await markPayoutPaid(payout.id, reference.trim());
+      await markPayoutPaid(payout.id);
       setPayoutsLoading(true);
       loadPayouts();
     } catch (err) {
@@ -614,7 +613,12 @@ export default function AdminDashboard() {
                       )}
                     </p>
                   )}
-                  {p.reference && <p className="mt-1 text-xs text-ink-300">Reference: {p.reference}</p>}
+                  {p.reference && (
+                    <p className="mt-1 text-xs text-ink-300">
+                      {p.status === "PENDING" ? "Use as the EFT reference: " : "Reference: "}
+                      <span className="font-mono font-semibold text-ink-500">{p.reference}</span>
+                    </p>
+                  )}
                 </li>
               );
             })}

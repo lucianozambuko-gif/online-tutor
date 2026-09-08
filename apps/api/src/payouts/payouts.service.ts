@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import {
   ConflictException,
   Injectable,
@@ -10,6 +11,15 @@ import {
   PayoutStatus,
 } from '../prisma/prisma-enums';
 import { MarkPayoutPaidDto } from './dto/mark-payout-paid.dto';
+
+// Generated at payout-creation time (not when marked paid) so an admin has
+// something to actually use as the reference on the real-world EFT, rather
+// than typing one in after the fact once the transfer's already been made.
+function generatePayoutReference(): string {
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const suffix = randomBytes(3).toString('hex').toUpperCase();
+  return `LMN-${stamp}-${suffix}`;
+}
 
 const TUTOR_SELECT = {
   id: true,
@@ -139,6 +149,7 @@ export class PayoutsService {
             periodEnd: now,
             totalAmount,
             status: PayoutStatus.PENDING,
+            reference: generatePayoutReference(),
             payments: { connect: payments.map((p) => ({ id: p.id })) },
           },
           include: {
@@ -154,6 +165,9 @@ export class PayoutsService {
     return { created: created.map(withTotalMinutes) };
   }
 
+  // dto.reference is an optional override — every payout already got an
+  // auto-generated reference when it was created, so leaving it out here
+  // (Prisma skips undefined fields on update) just keeps that one.
   async markPaid(id: string, dto: MarkPayoutPaidDto) {
     const payout = await this.prisma.payout.findUnique({ where: { id } });
     if (!payout) {
