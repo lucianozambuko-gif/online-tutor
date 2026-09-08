@@ -1,4 +1,5 @@
 import { StudentSidebar } from "@/components/student-sidebar";
+import { PortalShell } from "@/components/portal-shell";
 
 export default function StudentLayout({
   children,
@@ -6,9 +7,8 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div data-portal="student" className="flex min-h-screen">
-      <StudentSidebar />
-      <div className="min-w-0 flex-1 px-10 py-9">{children}</div>
+    <div data-portal="student">
+      <PortalShell sidebar={<StudentSidebar />}>{children}</PortalShell>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { TutorSidebar } from "@/components/tutor-sidebar";
+import { PortalShell } from "@/components/portal-shell";
 
 export default function TutorLayout({
   children,
@@ -6,9 +7,8 @@ export default function TutorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div data-portal="tutor" className="flex min-h-screen">
-      <TutorSidebar />
-      <div className="min-w-0 flex-1 px-10 py-9">{children}</div>
+    <div data-portal="tutor">
+      <PortalShell sidebar={<TutorSidebar />}>{children}</PortalShell>
     </div>
   );
 }

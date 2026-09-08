@@ -102,6 +102,14 @@ function LogOutIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
 interface NavItem {
   label: string;
   href: string;
@@ -136,17 +144,31 @@ function initials(name: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
-export function TutorSidebar() {
+export function TutorSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
   return (
-    <div className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col justify-between overflow-y-auto border-r border-ink-700/10 bg-white px-5 py-7">
+    <div
+      className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[260px] shrink-0 flex-col justify-between overflow-y-auto border-r border-ink-700/10 bg-white px-5 py-7 transition-transform duration-200 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
       <div>
-        <Link href="/tutor" className="flex items-center gap-2 px-2.5 pb-7">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
-          <span className="font-display text-lg font-semibold tracking-tight text-ink-900">Lumen</span>
-        </Link>
+        <div className="flex items-center justify-between pb-7 pl-2.5">
+          <Link href="/tutor" className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+            <span className="font-display text-lg font-semibold tracking-tight text-ink-900">Lumen</span>
+          </Link>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close menu"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-500 transition hover:bg-ink-700/5 lg:hidden"
+          >
+            <CloseIcon />
+          </button>
+        </div>
 
         <nav className="flex flex-col gap-0.5">
           {NAV_ITEMS.map((item) => {
@@ -155,6 +177,7 @@ export function TutorSidebar() {
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={onClose}
                 className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
                   active
                     ? "bg-sky-100 font-semibold text-sky-700"
