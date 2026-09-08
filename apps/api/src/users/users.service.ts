@@ -56,6 +56,10 @@ export class UsersService {
     return user;
   }
 
+  updatePassword(id: string, passwordHash: string) {
+    return this.prisma.user.update({ where: { id }, data: { passwordHash } });
+  }
+
   // Soft delete: flips status to DELETED rather than removing the row, since
   // Bookings/Payments/Messages etc. reference the user and a hard delete would
   // either fail on the foreign key or destroy that history. login() already

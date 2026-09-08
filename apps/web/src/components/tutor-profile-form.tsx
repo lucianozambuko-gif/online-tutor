@@ -65,7 +65,7 @@ export function TutorProfileForm() {
           <button type="submit" disabled={submitting} className={buttonClass("primary")}>
             {submitting ? "Saving..." : "Save profile"}
           </button>
-          {saved && <span className="text-sm text-emerald-600">Saved.</span>}
+          {saved && <span className="text-sm text-emerald-600 dark:text-emerald-400">Saved.</span>}
         </div>
       </form>
     </Card>

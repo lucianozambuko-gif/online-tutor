@@ -167,7 +167,7 @@ function LibraryContent() {
               filteredQuizzes.map((quiz) => (
                 <Link key={quiz.id} href={`/student/quizzes/${quiz.id}`}>
                   <Card className="h-full transition hover:border-sky-400/50">
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                       Quiz
                     </span>
                     <p className="mt-2 font-medium text-ink-900">{quiz.topic}</p>

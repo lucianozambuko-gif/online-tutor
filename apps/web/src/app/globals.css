@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #faf6ec;
   --foreground: #12233b;
@@ -24,6 +26,42 @@
   --color-ink-700: #12233b;
   --color-ink-500: #3d5470;
   --color-ink-300: #7c93ab;
+}
+
+/*
+ * Dark theme — swaps each token's ROLE rather than naively inverting
+ * lightness: backgrounds (cream/cream-soft/white) go from light to dark in
+ * that same light->dark order (white stays the most-elevated surface), while
+ * the ink text scale flips (ink-900 was near-black "most emphasis" on a
+ * light page; on a dark page "most emphasis" needs to be near-white).
+ * Because @theme below references these variables rather than copying their
+ * values, every existing bg-cream/text-ink-900/border-ink-700/10 class
+ * across the app repaints correctly under .dark with no component changes.
+ */
+.dark {
+  --background: #0c1420;
+  --foreground: #e0dac9;
+
+  --color-cream: #0c1420;
+  --color-cream-soft: #131f2f;
+  --color-white: #172338;
+
+  --color-sky-50: #101d2c;
+  --color-sky-100: #15304a;
+  --color-sky-200: #1d3f60;
+  --color-sky-400: #6fb3e8;
+  --color-sky-600: #4fa0dd;
+  --color-sky-700: #7ec4f2;
+
+  /* Gold is deliberately left unchanged — it's used almost entirely as a
+     low-opacity wash (bg-gold-300/25 etc.) or a small solid accent, and a
+     light gold reads fine as a warm tint over a dark background too; a
+     darkened gold-300 would go nearly invisible at 10-25% opacity instead. */
+
+  --color-ink-900: #f5f0e6;
+  --color-ink-700: #e0dac9;
+  --color-ink-500: #a7b3c4;
+  --color-ink-300: #6b7890;
 }
 
 @theme inline {
@@ -57,6 +95,11 @@ html {
   /* Keeps anchor/scroll-into-view targets (e.g. #book-a-tutor, #my-bookings)
      from landing underneath the sticky portal header. */
   scroll-padding-top: 5rem;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {

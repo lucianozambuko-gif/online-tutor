@@ -26,9 +26,9 @@ function formatWhen(iso: string) {
 }
 
 const AVATAR_TONES = [
-  { bg: "#e2f0fb", color: "#1f5f9c" },
-  { bg: "rgba(18,35,59,0.06)", color: "#12233b" },
-  { bg: "#c9e3f7", color: "#1f5f9c" },
+  { bg: "var(--color-sky-100)", color: "var(--color-sky-700)" },
+  { bg: "color-mix(in srgb, var(--color-ink-700) 6%, transparent)", color: "var(--color-ink-700)" },
+  { bg: "var(--color-sky-200)", color: "var(--color-sky-700)" },
 ];
 
 export function UpcomingLessonsCard({ lessons }: { lessons: Lesson[] }) {
@@ -57,7 +57,7 @@ export function UpcomingLessonsCard({ lessons }: { lessons: Lesson[] }) {
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                  style={{ background: soonest ? "#ddb75c" : tone.bg }}
+                  style={{ background: soonest ? "var(--color-gold-400)" : tone.bg }}
                 >
                   <span className="font-display text-[13px] font-bold" style={{ color: soonest ? "#0d1b2e" : tone.color }}>
                     {initials(lesson.tutor.name)}

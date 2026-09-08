@@ -98,28 +98,28 @@ export function TutorOverview({ tutorName }: { tutorName: string }) {
     {
       label: "Pending requests",
       value: data.requests.count,
-      icon: <RequestsIcon color="#a97e26" />,
+      icon: <RequestsIcon color="var(--color-gold-600)" />,
       iconBg: "bg-gold-300/35",
       href: "/tutor/requests",
     },
     {
       label: "Active students",
       value: data.students.count,
-      icon: <StudentsIcon color="#1f5f9c" />,
+      icon: <StudentsIcon color="var(--color-sky-700)" />,
       iconBg: "bg-sky-100",
       href: "/tutor/students",
     },
     {
       label: "Upcoming sessions",
       value: data.sessions.count,
-      icon: <SessionsIcon color="#12233b" />,
+      icon: <SessionsIcon color="var(--color-ink-700)" />,
       iconBg: "bg-ink-700/6",
       href: "/tutor/sessions",
     },
     {
       label: "Earnings this month",
       value: `R${data.earnings.thisMonth.toFixed(2)}`,
-      icon: <EarningsIcon color="#1f5f9c" />,
+      icon: <EarningsIcon color="var(--color-sky-700)" />,
       iconBg: "bg-sky-200",
       href: "/tutor/earnings",
     },
@@ -142,7 +142,7 @@ export function TutorOverview({ tutorName }: { tutorName: string }) {
         </div>
       )}
       {verificationStatus === "REJECTED" && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
           Your tutor application wasn&apos;t approved, so you won&apos;t be bookable.{" "}
           <Link href="/tutor/profile" className="font-semibold underline">
             View profile

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -11,6 +12,7 @@ import { UsersService } from '../users/users.service';
 import { GuardianConsentService } from '../guardian-consent/guardian-consent.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from './jwt-payload.interface';
 import { Role, UserStatus } from '../prisma/prisma-enums';
 import { calculateAge, MINOR_AGE_CUTOFF } from '../common/age';
@@ -106,6 +108,25 @@ export class AuthService {
     }
 
     return this.buildSession(user);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    const matches = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+    if (!matches) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+    await this.usersService.updatePassword(userId, passwordHash);
+    return { success: true };
   }
 
   private buildSession(user: UserRecord) {

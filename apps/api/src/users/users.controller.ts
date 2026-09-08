@@ -25,6 +25,14 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  // Declared before ':id' — otherwise Nest would match "me" as an :id param
+  // and this route would never be reached.
+  @Delete('me')
+  @Roles(Role.STUDENT, Role.TUTOR)
+  removeSelf(@CurrentUser() currentUser: JwtPayload) {
+    return this.usersService.softDelete(currentUser.sub);
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN)
   remove(@CurrentUser() currentUser: JwtPayload, @Param('id') id: string) {

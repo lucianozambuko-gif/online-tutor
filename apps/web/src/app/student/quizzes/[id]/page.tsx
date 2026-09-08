@@ -110,8 +110,8 @@ export default function QuizPage({ params }: PageProps<"/student/quizzes/[id]">)
                   const isPicked = pickedIndex === oi;
                   let optionClass = "border-ink-700/15 hover:border-sky-400/50";
                   if (revealAnswer) {
-                    if (isCorrect) optionClass = "border-emerald-400 bg-emerald-50";
-                    else if (isPicked) optionClass = "border-red-300 bg-red-50";
+                    if (isCorrect) optionClass = "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40";
+                    else if (isPicked) optionClass = "border-red-300 bg-red-50 dark:bg-red-950/40";
                   } else if (answers[qi] === oi) {
                     optionClass = "border-sky-400 bg-sky-50";
                   }

@@ -9,7 +9,7 @@ function VerificationBanner({ status }: { status: OwnTutorProfile["verificationS
 
   if (status === "REJECTED") {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
         Your tutor application wasn&apos;t approved, so you won&apos;t appear in student searches or be
         bookable. Contact an admin if you think this is a mistake.
       </div>
@@ -40,7 +40,7 @@ export default function TutorProfilePage() {
         <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-900">Profile</h1>
         <p className="mt-1 text-sm text-ink-500">Keep your subjects, rate and bio up to date.</p>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       {profile && <VerificationBanner status={profile.verificationStatus} />}
       <TutorProfileForm />
     </div>

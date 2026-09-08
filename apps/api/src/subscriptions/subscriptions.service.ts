@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '../../generated/prisma/client';
 import { SubscriptionPlan, SubscriptionStatus } from '../prisma/prisma-enums';
 import {
   generatePayfastSignature,
@@ -28,20 +29,38 @@ export class SubscriptionsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  // upsert (not findUnique-then-create) so two concurrent first-touch
-  // requests for the same student — e.g. two components both loading the
-  // summary on mount — can't race to insert the row and hit the unique
-  // constraint on studentId.
+  // upsert so two concurrent first-touch requests for the same student can't
+  // both pass a findUnique-then-create check and race to insert. That alone
+  // still isn't fully race-proof here — Prisma's upsert isn't always a
+  // single atomic statement, so two upserts landing at the DB at nearly the
+  // same moment can still both attempt the insert. When that happens the
+  // loser's insert fails on the unique constraint (P2002) rather than the
+  // update path, since its own upsert already decided to insert before
+  // seeing the winner's row — at that point the row definitely exists, so
+  // just re-read it instead of surfacing a 500.
   async getOrCreate(studentId: string) {
-    return this.prisma.subscription.upsert({
-      where: { studentId },
-      update: {},
-      create: {
-        studentId,
-        periodStart: new Date(),
-        periodEnd: addDays(new Date(), SUBSCRIPTION_PERIOD_DAYS),
-      },
-    });
+    try {
+      return await this.prisma.subscription.upsert({
+        where: { studentId },
+        update: {},
+        create: {
+          studentId,
+          periodStart: new Date(),
+          periodEnd: addDays(new Date(), SUBSCRIPTION_PERIOD_DAYS),
+        },
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const existing = await this.prisma.subscription.findUnique({
+          where: { studentId },
+        });
+        if (existing) return existing;
+      }
+      throw err;
+    }
   }
 
   // Lazily rolls the usage window forward — called before every read/check so

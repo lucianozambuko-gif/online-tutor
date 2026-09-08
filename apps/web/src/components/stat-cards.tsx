@@ -6,7 +6,6 @@ interface StatCard {
   trend: string;
   trendColor: string;
   iconBg: string;
-  iconColor: string;
   icon: ReactNode;
 }
 
@@ -69,8 +68,7 @@ export function StatCards({
       trend: notesCount === 0 ? "Generate your first note" : "Keep building your library",
       trendColor: "text-sky-600",
       iconBg: "bg-sky-100",
-      iconColor: "#1f5f9c",
-      icon: <NotesIcon color="#1f5f9c" />,
+      icon: <NotesIcon color="var(--color-sky-700)" />,
     },
     {
       label: "Flashcard sets",
@@ -78,8 +76,7 @@ export function StatCards({
       trend: flashcardsCount === 0 ? "Turn a note into flashcards" : "Review them before your next quiz",
       trendColor: "text-gold-600",
       iconBg: "bg-gold-300/35",
-      iconColor: "#a97e26",
-      icon: <FlashcardsIcon color="#a97e26" />,
+      icon: <FlashcardsIcon color="var(--color-gold-600)" />,
     },
     {
       label: "Quizzes taken",
@@ -87,8 +84,7 @@ export function StatCards({
       trend: quizTrend,
       trendColor: "text-ink-500",
       iconBg: "bg-ink-700/6",
-      iconColor: "#12233b",
-      icon: <QuizIcon color="#12233b" />,
+      icon: <QuizIcon color="var(--color-ink-700)" />,
     },
     {
       label: "Upcoming lessons",
@@ -96,8 +92,7 @@ export function StatCards({
       trend: nextLessonLabel ?? "Nothing booked yet",
       trendColor: "text-gold-600",
       iconBg: "bg-sky-200",
-      iconColor: "#1f5f9c",
-      icon: <LessonsIcon color="#1f5f9c" />,
+      icon: <LessonsIcon color="var(--color-sky-700)" />,
     },
   ];
 

@@ -35,7 +35,8 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   gold: "bg-gradient-to-r from-gold-400 to-gold-600 text-ink-900 shadow-sm hover:shadow-md hover:shadow-gold-500/20",
   outline: "border border-ink-700/15 bg-white text-ink-700 hover:border-sky-400/50 hover:text-ink-900",
   ghost: "text-ink-500 hover:bg-ink-700/5 hover:text-ink-900",
-  danger: "border border-red-300 bg-white text-red-600 hover:bg-red-50",
+  danger:
+    "border border-red-300 bg-white text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-950/40",
 };
 
 export function buttonClass(variant: ButtonVariant = "primary", className = "") {
@@ -52,7 +53,7 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 
 export function ErrorText({ children }: { children: ReactNode }) {
   return (
-    <p role="alert" className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+    <p role="alert" className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
       {children}
     </p>
   );
@@ -63,18 +64,18 @@ const STATUS_STYLE: Record<string, string> = {
   PENDING_GUARDIAN_CONSENT: "bg-gold-300/25 text-gold-600",
   OPEN: "bg-gold-300/25 text-gold-600",
   UNDER_REVIEW: "bg-sky-100 text-sky-700",
-  RESOLVED: "bg-emerald-100 text-emerald-700",
+  RESOLVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
   CONFIRMED: "bg-sky-100 text-sky-700",
-  COMPLETED: "bg-emerald-100 text-emerald-700",
-  ACTIVE: "bg-emerald-100 text-emerald-700",
-  PAID: "bg-emerald-100 text-emerald-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
+  COMPLETED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+  ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+  PAID: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+  APPROVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
   CANCELLED: "bg-ink-700/8 text-ink-500",
   PAST_DUE: "bg-gold-300/25 text-gold-600",
-  FAILED: "bg-red-100 text-red-700",
-  DISPUTED: "bg-red-100 text-red-700",
-  SUSPENDED: "bg-red-100 text-red-700",
-  REJECTED: "bg-red-100 text-red-700",
+  FAILED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+  DISPUTED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+  SUSPENDED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+  REJECTED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
 };
 
 export function StatusBadge({ status }: { status: string }) {

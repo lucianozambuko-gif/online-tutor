@@ -54,26 +54,26 @@ export function StudyActivityChart({ days }: { days: DayActivity[] }) {
   return (
     <div className="relative mt-5" style={{ height: CHART_HEIGHT }}>
       <svg width="100%" height={CHART_HEIGHT} viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} preserveAspectRatio="none" className="block overflow-visible">
-        <line x1="0" y1="40" x2={CHART_WIDTH} y2="40" stroke="#12233b" strokeOpacity="0.06" />
-        <line x1="0" y1="110" x2={CHART_WIDTH} y2="110" stroke="#12233b" strokeOpacity="0.06" />
-        <line x1="0" y1="180" x2={CHART_WIDTH} y2="180" stroke="#12233b" strokeOpacity="0.06" />
+        <line x1="0" y1="40" x2={CHART_WIDTH} y2="40" stroke="var(--color-ink-700)" strokeOpacity="0.06" />
+        <line x1="0" y1="110" x2={CHART_WIDTH} y2="110" stroke="var(--color-ink-700)" strokeOpacity="0.06" />
+        <line x1="0" y1="180" x2={CHART_WIDTH} y2="180" stroke="var(--color-ink-700)" strokeOpacity="0.06" />
         <defs>
           <linearGradient id="studyActivityFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6fb3e8" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#6fb3e8" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--color-sky-400)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--color-sky-400)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={area} fill="url(#studyActivityFill)" />
-        <path d={line} fill="none" stroke="#2f7dc2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={highlight.x} cy={highlight.y} r="5.5" fill="#ffffff" stroke="#2f7dc2" strokeWidth="3" />
+        <path d={line} fill="none" stroke="var(--color-sky-600)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={highlight.x} cy={highlight.y} r="5.5" fill="var(--color-white)" stroke="var(--color-sky-600)" strokeWidth="3" />
       </svg>
 
       <div
-        className="absolute -translate-x-1/2 -translate-y-[130%] whitespace-nowrap rounded-lg bg-ink-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg"
+        className="absolute -translate-x-1/2 -translate-y-[130%] whitespace-nowrap rounded-lg bg-[#0d1b2e] px-3 py-1.5 text-xs font-semibold text-white shadow-lg"
         style={{ left: `${leftPercent}%`, top: `${topPercent}%` }}
       >
         {count} {count === 1 ? "item" : "items"} · {days[highlightIndex].label}
-        <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-ink-900" />
+        <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#0d1b2e]" />
       </div>
 
       <div className="absolute inset-x-0 -bottom-6 flex justify-between text-[11px] text-ink-300">

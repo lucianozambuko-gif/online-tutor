@@ -523,3 +523,11 @@ export interface AdminSubscription {
 export function listAdminSubscriptions(): Promise<AdminSubscription[]> {
   return apiFetch("/subscriptions/admin/list");
 }
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean }> {
+  return apiFetch("/auth/password", { method: "PATCH", body: JSON.stringify({ currentPassword, newPassword }) });
+}
+
+export function deleteOwnAccount(): Promise<unknown> {
+  return apiFetch("/users/me", { method: "DELETE" });
+}
