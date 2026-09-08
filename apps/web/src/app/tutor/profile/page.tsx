@@ -42,7 +42,7 @@ export default function TutorProfilePage() {
       </div>
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       {profile && <VerificationBanner status={profile.verificationStatus} />}
-      <TutorProfileForm />
+      {profile ? <TutorProfileForm initial={profile} /> : <p className="text-sm text-ink-500">Loading your profile...</p>}
     </div>
   );
 }

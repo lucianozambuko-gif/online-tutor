@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { createBooking, listTutors, ApiError, type TutorSummary } from "@/lib/api";
+import { createBooking, listTutors, ApiError, GRADE_LEVEL_LABELS, type TutorSummary } from "@/lib/api";
 import { Card, Field, inputClass, buttonClass, ErrorText } from "@/components/ui";
 
 export function BookTutorForm({ onBooked }: { onBooked: () => void }) {
@@ -55,11 +55,15 @@ export function BookTutorForm({ onBooked }: { onBooked: () => void }) {
           <div className="sm:col-span-2">
             <Field label="Tutor" htmlFor="tutorId">
               <select id="tutorId" className={inputClass} value={tutorId} onChange={(e) => setTutorId(e.target.value)}>
-                {tutors.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} — {t.tutorProfile.subjects.join(", ")} (R{t.tutorProfile.hourlyRate}/hr)
-                  </option>
-                ))}
+                {tutors.map((t) => {
+                  const levels = t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ");
+                  return (
+                    <option key={t.id} value={t.id}>
+                      {t.name} — {t.tutorProfile.subjects.join(", ")}
+                      {levels ? ` (${levels})` : ""} — R{t.tutorProfile.hourlyRate}/hr
+                    </option>
+                  );
+                })}
               </select>
             </Field>
           </div>

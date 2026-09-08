@@ -289,6 +289,9 @@ model TutorProfile {
   userId                 String                 @unique
   user                   User                   @relation(fields: [userId], references: [id])
   subjects               String[]
+  // Which school phases this tutor covers — a South African tutor commonly
+  // spans more than one (e.g. High School and Varsity), so it's a set.
+  gradeLevels            GradeLevel[]           @default([])
   qualifications         String[]
   verificationStatus     VerificationStatus     @default(PENDING)
   idDocumentRef          String?
@@ -296,6 +299,12 @@ model TutorProfile {
   hourlyRate             Decimal                @db.Decimal(10, 2)
   bio                    String?
   avgRating              Decimal?               @db.Decimal(3, 2)
+}
+
+enum GradeLevel {
+  PRIMARY
+  HIGH_SCHOOL
+  VARSITY
 }
 
 model Booking {

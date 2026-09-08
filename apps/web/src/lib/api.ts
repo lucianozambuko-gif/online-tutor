@@ -64,11 +64,20 @@ export function fetchCurrentUser(): Promise<{ user: CurrentUser | null }> {
   return apiFetch("/auth/me");
 }
 
+export type GradeLevel = "PRIMARY" | "HIGH_SCHOOL" | "VARSITY";
+
+export const GRADE_LEVEL_LABELS: Record<GradeLevel, string> = {
+  PRIMARY: "Primary",
+  HIGH_SCHOOL: "High School",
+  VARSITY: "Varsity",
+};
+
 export interface TutorSummary {
   id: string;
   name: string;
   tutorProfile: {
     subjects: string[];
+    gradeLevels: GradeLevel[];
     hourlyRate: string;
     bio: string | null;
     avgRating: string | null;
@@ -82,6 +91,7 @@ export function listTutors(): Promise<TutorSummary[]> {
 
 export function updateOwnTutorProfile(data: {
   subjects?: string[];
+  gradeLevels?: GradeLevel[];
   qualifications?: string[];
   bio?: string;
   hourlyRate?: number;
@@ -95,6 +105,7 @@ export interface OwnTutorProfile {
   id: string;
   userId: string;
   subjects: string[];
+  gradeLevels: GradeLevel[];
   qualifications: string[];
   hourlyRate: string;
   bio: string | null;
@@ -113,6 +124,7 @@ export interface AdminTutor {
   createdAt: string;
   tutorProfile: {
     subjects: string[];
+    gradeLevels: GradeLevel[];
     hourlyRate: string;
     bio: string | null;
     verificationStatus: VerificationStatus;

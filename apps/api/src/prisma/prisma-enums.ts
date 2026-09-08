@@ -14,4 +14,5 @@ export {
   IssueCategory,
   SubscriptionPlan,
   SubscriptionStatus,
+  GradeLevel,
 } from '../../generated/prisma/client';
