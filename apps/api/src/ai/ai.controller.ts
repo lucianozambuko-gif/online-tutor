@@ -17,6 +17,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
 import { aiAttachmentUploadOptions } from '../common/upload';
+import { MAX_FILES_PER_MESSAGE_CAP } from '../subscriptions/plan-limits';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,8 +35,8 @@ export class AiController {
   @UseInterceptors(
     FileFieldsInterceptor(
       [
-        { name: 'image', maxCount: 1 },
-        { name: 'document', maxCount: 1 },
+        { name: 'images', maxCount: MAX_FILES_PER_MESSAGE_CAP },
+        { name: 'documents', maxCount: MAX_FILES_PER_MESSAGE_CAP },
       ],
       aiAttachmentUploadOptions,
     ),
@@ -45,15 +46,15 @@ export class AiController {
     @Body() dto: SendMessageDto,
     @UploadedFiles()
     files: {
-      image?: Express.Multer.File[];
-      document?: Express.Multer.File[];
+      images?: Express.Multer.File[];
+      documents?: Express.Multer.File[];
     },
   ) {
     return this.aiService.sendMessage(
       user.sub,
       dto.content,
-      files.image?.[0],
-      files.document?.[0],
+      files.images ?? [],
+      files.documents ?? [],
     );
   }
 }

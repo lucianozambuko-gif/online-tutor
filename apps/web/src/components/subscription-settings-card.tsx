@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getMySubscription, cancelSubscription, ApiError, type SubscriptionSummary } from "@/lib/api";
 import { buttonClass, ErrorText, StatusBadge } from "@/components/ui";
+import { formatResetIn } from "@/lib/format";
 
 export function SubscriptionSettingsCard() {
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
@@ -60,8 +61,13 @@ export function SubscriptionSettingsCard() {
       )}
       <p className="mt-3 text-xs text-ink-300">
         {summary.aiMessagesUsed}
-        {summary.aiMessagesLimit !== null ? `/${summary.aiMessagesLimit}` : ""} AI Helper messages ·{" "}
-        {summary.generationsUsed}
+        {summary.aiMessagesLimit !== null ? `/${summary.aiMessagesLimit}` : ""} AI Helper messages
+        {summary.plan === "FREE"
+          ? summary.aiMessagesResetAt
+            ? ` (resets in ${formatResetIn(summary.aiMessagesResetAt)})`
+            : ""
+          : " this month"}{" "}
+        · {summary.generationsUsed}
         {summary.generationsLimit !== null ? `/${summary.generationsLimit}` : ""} generations this month
       </p>
     </div>

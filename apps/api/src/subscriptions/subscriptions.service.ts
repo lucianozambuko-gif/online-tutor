@@ -14,6 +14,7 @@ import {
 } from '../payments/payfast.util';
 import { callSubscriptionApi } from '../payments/payfast-subscription.util';
 import {
+  FREE_AI_MESSAGE_WINDOW_MS,
   PLAN_LIMITS,
   PLAN_PRICE_ZAR,
   SUBSCRIPTION_PERIOD_DAYS,
@@ -63,9 +64,11 @@ export class SubscriptionsService {
     }
   }
 
-  // Lazily rolls the usage window forward — called before every read/check so
-  // a missed renewal webhook or a free student's monthly reset both "just
-  // happen" the next time they touch the app, no cron job required.
+  // Lazily rolls the monthly usage window forward — called before every
+  // read/check so a missed renewal webhook or a free student's monthly reset
+  // both "just happen" the next time they touch the app, no cron job
+  // required. Only covers generationsUsed for FREE now — aiMessagesUsed on
+  // FREE is governed by the separate short rolling window below instead.
   private async resetIfNeeded(sub: SubscriptionRow) {
     if (!sub.periodEnd || sub.periodEnd.getTime() > Date.now()) {
       return sub;
@@ -77,14 +80,14 @@ export class SubscriptionsService {
         data: {
           periodStart: new Date(),
           periodEnd: addDays(new Date(), SUBSCRIPTION_PERIOD_DAYS),
-          aiMessagesUsed: 0,
           generationsUsed: 0,
         },
       });
     }
 
     // A paid plan's period elapsed with no renewal (cancelled, or a missed
-    // ITN) — fall back to Free rather than let paid perks run on trust.
+    // ITN) — fall back to Free rather than let paid perks run on trust. The
+    // student's next AI message will start their own fresh 5-hour window.
     return this.prisma.subscription.update({
       where: { id: sub.id },
       data: {
@@ -93,24 +96,56 @@ export class SubscriptionsService {
         periodStart: new Date(),
         periodEnd: addDays(new Date(), SUBSCRIPTION_PERIOD_DAYS),
         aiMessagesUsed: 0,
+        aiMessageWindowStart: null,
         generationsUsed: 0,
       },
     });
   }
 
+  // Free plan's AI Helper limit is a short rolling window rather than a
+  // monthly count: once the window has elapsed the slate wipes clean, so a
+  // student is never stuck waiting for a billing period to roll over — just
+  // a few hours. Returns null while still within an active, unexpired window
+  // (i.e. no reset due), or the window's start time if one should begin/has
+  // begun aging.
+  private freeAiWindowElapsed(sub: SubscriptionRow): boolean {
+    if (!sub.aiMessageWindowStart) return true;
+    return (
+      Date.now() - sub.aiMessageWindowStart.getTime() >=
+      FREE_AI_MESSAGE_WINDOW_MS
+    );
+  }
+
   async getSummary(studentId: string) {
     const sub = await this.resetIfNeeded(await this.getOrCreate(studentId));
     const limits = PLAN_LIMITS[sub.plan];
+    const isFree = sub.plan === SubscriptionPlan.FREE;
+
+    const freeWindowElapsed = isFree && this.freeAiWindowElapsed(sub);
+    const aiMessagesUsed = isFree
+      ? freeWindowElapsed
+        ? 0
+        : sub.aiMessagesUsed
+      : sub.aiMessagesUsed;
+    const aiMessagesResetAt = isFree
+      ? sub.aiMessageWindowStart && !freeWindowElapsed
+        ? new Date(
+            sub.aiMessageWindowStart.getTime() + FREE_AI_MESSAGE_WINDOW_MS,
+          )
+        : null
+      : sub.periodEnd;
 
     return {
       plan: sub.plan,
       status: sub.status,
       periodEnd: sub.periodEnd,
-      aiMessagesUsed: sub.aiMessagesUsed,
+      aiMessagesUsed,
       aiMessagesLimit: limits.aiMessages,
+      aiMessagesResetAt,
       generationsUsed: sub.generationsUsed,
       generationsLimit: limits.generations,
       canUseVision: limits.vision,
+      maxFilesPerMessage: limits.maxFilesPerMessage,
     };
   }
 
@@ -129,6 +164,10 @@ export class SubscriptionsService {
     return PLAN_LIMITS[plan].historyMessages;
   }
 
+  maxFilesPerMessage(plan: SubscriptionPlan): number {
+    return PLAN_LIMITS[plan].maxFilesPerMessage;
+  }
+
   // Called before an AI helper reply or a note/flashcard/quiz generation.
   // Throws (no increment) if the plan's limit or vision permission is already
   // exhausted; otherwise increments the relevant counter and returns the
@@ -145,6 +184,11 @@ export class SubscriptionsService {
       throw new ForbiddenException(
         'Image help is available on the Plus and Pro plans — upgrade to unlock it, or ask without an image.',
       );
+    }
+
+    if (kind === 'AI_MESSAGE' && sub.plan === SubscriptionPlan.FREE) {
+      await this.checkAndIncrementFreeAiMessage(sub);
+      return sub.plan;
     }
 
     const limit =
@@ -171,6 +215,34 @@ export class SubscriptionsService {
     });
 
     return sub.plan;
+  }
+
+  private async checkAndIncrementFreeAiMessage(sub: SubscriptionRow) {
+    const limit = PLAN_LIMITS.FREE.aiMessages!;
+    const windowElapsed = this.freeAiWindowElapsed(sub);
+    const usedInWindow = windowElapsed ? 0 : sub.aiMessagesUsed;
+
+    if (usedInWindow >= limit) {
+      const resetAt =
+        sub.aiMessageWindowStart!.getTime() + FREE_AI_MESSAGE_WINDOW_MS;
+      const minutesLeft = Math.max(
+        1,
+        Math.ceil((resetAt - Date.now()) / 60000),
+      );
+      const hours = Math.floor(minutesLeft / 60);
+      const minutes = minutesLeft % 60;
+      const wait = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+      throw new ForbiddenException(
+        `You've used all ${limit} free AI Helper messages for now — try again in ${wait}, or upgrade for more.`,
+      );
+    }
+
+    await this.prisma.subscription.update({
+      where: { id: sub.id },
+      data: windowElapsed
+        ? { aiMessagesUsed: 1, aiMessageWindowStart: new Date() }
+        : { aiMessagesUsed: { increment: 1 } },
+    });
   }
 
   async initiateUpgrade(studentId: string, plan: 'PLUS' | 'PRO') {

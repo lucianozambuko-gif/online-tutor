@@ -249,13 +249,15 @@ export function deleteUser(id: string): Promise<AdminUser> {
   return apiFetch(`/users/${id}`, { method: "DELETE" });
 }
 
+export type AiAttachment =
+  | { kind: "IMAGE"; name: string; mimeType: string; data: string }
+  | { kind: "DOCUMENT"; name: string; mimeType: string; text: string };
+
 export interface AiMessage {
   id: string;
   role: "USER" | "ASSISTANT";
   content: string;
-  imageData: string | null;
-  imageMimeType: string | null;
-  documentName: string | null;
+  attachments: AiAttachment[] | null;
   createdAt: string;
 }
 
@@ -263,11 +265,11 @@ export function listAiMessages(): Promise<AiMessage[]> {
   return apiFetch("/ai/messages");
 }
 
-export function sendAiMessage(content: string, image?: File, document?: File): Promise<AiMessage> {
+export function sendAiMessage(content: string, images: File[] = [], documents: File[] = []): Promise<AiMessage> {
   const form = new FormData();
   form.append("content", content);
-  if (image) form.append("image", image);
-  if (document) form.append("document", document);
+  images.forEach((f) => form.append("images", f));
+  documents.forEach((f) => form.append("documents", f));
   return apiFetch("/ai/messages", { method: "POST", body: form });
 }
 
@@ -552,9 +554,14 @@ export interface SubscriptionSummary {
   periodEnd: string | null;
   aiMessagesUsed: number;
   aiMessagesLimit: number | null;
+  // When the AI Helper count resets — the end of a short rolling window on
+  // Free, or the monthly period end on Plus/Pro. Null on Free when no window
+  // is currently active (i.e. nothing used yet).
+  aiMessagesResetAt: string | null;
   generationsUsed: number;
   generationsLimit: number | null;
   canUseVision: boolean;
+  maxFilesPerMessage: number;
 }
 
 export function getMySubscription(): Promise<SubscriptionSummary> {

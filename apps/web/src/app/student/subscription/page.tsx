@@ -11,6 +11,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/api";
 import { redirectToPayfast } from "@/lib/payfast";
+import { formatResetIn } from "@/lib/format";
 import { Card, buttonClass, ErrorText } from "@/components/ui";
 
 interface PlanCard {
@@ -27,7 +28,13 @@ const PLAN_CARDS: PlanCard[] = [
     name: "Free",
     price: "R0",
     tagline: "Try Lumen AI out",
-    features: ["15 AI Helper messages / month", "10 notes/flashcards/quizzes / month", "Text questions only", "Remembers your last 6 messages"],
+    features: [
+      "5 AI Helper messages every 5 hours",
+      "10 notes/flashcards/quizzes / month",
+      "Attach 1 PDF/Word document per message",
+      "Text questions only, no photos",
+      "Remembers your last 14 messages",
+    ],
   },
   {
     plan: "PLUS",
@@ -37,7 +44,7 @@ const PLAN_CARDS: PlanCard[] = [
     features: [
       "150 AI Helper messages / month",
       "60 notes/flashcards/quizzes / month",
-      "Attach photos of problems",
+      "Attach up to 3 photos or documents per message",
       "Remembers your last 20 messages",
     ],
   },
@@ -49,7 +56,7 @@ const PLAN_CARDS: PlanCard[] = [
     features: [
       "Unlimited AI Helper messages",
       "Unlimited notes/flashcards/quizzes",
-      "Attach photos of problems",
+      "Attach up to 5 photos or documents per message",
       "Remembers your last 40 messages",
       "Priority on reported issues",
     ],
@@ -160,6 +167,9 @@ function SubscriptionPageContent() {
               <div className="mt-1.5">
                 <UsageBar used={summary.aiMessagesUsed} limit={summary.aiMessagesLimit} />
               </div>
+              {summary.plan === "FREE" && summary.aiMessagesResetAt && (
+                <p className="mt-1 text-xs text-ink-300">Resets in {formatResetIn(summary.aiMessagesResetAt)}</p>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-300">Notes/flashcards/quizzes</p>

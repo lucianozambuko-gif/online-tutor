@@ -5,16 +5,30 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { listAiMessages, sendAiMessage, getMySubscription, ApiError, type AiMessage, type SubscriptionSummary } from "@/lib/api";
 import { Card, inputClass, buttonClass, ErrorText } from "@/components/ui";
 import { MarkdownContent } from "@/components/markdown-content";
+import { formatResetIn } from "@/lib/format";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_DOCUMENT_TYPES =
   "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.docx";
 
+interface DisplayImageAttachment {
+  kind: "IMAGE";
+  name: string;
+  mimeType: string;
+  data?: string; // present once echoed back by the server
+  previewUrl?: string; // present for the optimistic/pending bubble
+}
+interface DisplayDocumentAttachment {
+  kind: "DOCUMENT";
+  name: string;
+  mimeType: string;
+}
+type DisplayAttachment = DisplayImageAttachment | DisplayDocumentAttachment;
+
 // The optimistic bubble shown right after sending needs to preview the
-// picked File immediately (via a local object URL) — the server hasn't
-// echoed back the persisted base64 imageData yet at that point.
-type ChatMessage = AiMessage & { previewUrl?: string | null };
+// picked Files immediately (via local object URLs) — the server hasn't
+// echoed back the persisted attachments yet at that point.
+type ChatMessage = Omit<AiMessage, "attachments"> & { attachments: DisplayAttachment[] | null };
 
 function PlusIcon() {
   return (
@@ -44,9 +58,9 @@ export function AiHelperChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-  const [documentFile, setDocument] = useState<File | null>(null);
-  const imagePreviewUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image]);
+  const [images, setImages] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<File[]>([]);
+  const imagePreviewUrls = useMemo(() => images.map((f) => URL.createObjectURL(f)), [images]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionSummary | null>(null);
@@ -75,76 +89,115 @@ export function AiHelperChat() {
 
   useEffect(() => {
     return () => {
-      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+      imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [imagePreviewUrl]);
+  }, [imagePreviewUrls]);
 
-  function handlePickImage(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  const maxFiles = subscription?.maxFilesPerMessage ?? 1;
+  const attachedCount = images.length + documents.length;
+  const atFileLimit = attachedCount >= maxFiles;
+
+  function handlePickImages(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Only image files can be attached.");
+    if (files.length === 0) return;
+
+    const room = maxFiles - attachedCount;
+    if (room <= 0) {
+      setError(`Your plan allows up to ${maxFiles} file${maxFiles === 1 ? "" : "s"} per message.`);
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setError("That image is too large — please attach one under 5MB.");
-      return;
+    const accepted: File[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        setError("Only image files can be attached.");
+        continue;
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        setError("That image is too large — please attach one under 5MB.");
+        continue;
+      }
+      if (accepted.length >= room) break;
+      accepted.push(file);
     }
+    if (accepted.length === 0) return;
     setError(null);
-    setDocument(null);
-    setImage(file);
+    setImages((prev) => [...prev, ...accepted]);
   }
 
-  function handlePickDocument(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  function handlePickDocuments(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!file) return;
-    const isPdf = file.type === "application/pdf";
-    const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    if (!isPdf && !isDocx) {
-      setError("Only PDF or Word (.docx) documents can be attached.");
+    if (files.length === 0) return;
+
+    const room = maxFiles - attachedCount;
+    if (room <= 0) {
+      setError(`Your plan allows up to ${maxFiles} file${maxFiles === 1 ? "" : "s"} per message.`);
       return;
     }
-    if (file.size > MAX_DOCUMENT_BYTES) {
-      setError("That file is too large — please attach one under 5MB.");
-      return;
+    const accepted: File[] = [];
+    for (const file of files) {
+      const isPdf = file.type === "application/pdf";
+      const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      if (!isPdf && !isDocx) {
+        setError("Only PDF or Word (.docx) documents can be attached.");
+        continue;
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        setError("That file is too large — please attach one under 5MB.");
+        continue;
+      }
+      if (accepted.length >= room) break;
+      accepted.push(file);
     }
+    if (accepted.length === 0) return;
     setError(null);
-    setImage(null);
-    setDocument(file);
+    setDocuments((prev) => [...prev, ...accepted]);
+  }
+
+  function removeImage(index: number) {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function removeDocument(index: number) {
+    setDocuments((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
-    if ((!content && !image && !documentFile) || sending) return;
+    if ((!content && images.length === 0 && documents.length === 0) || sending) return;
 
-    const pendingImage = image;
-    const pendingDocument = documentFile;
-    const pendingPreviewUrl = imagePreviewUrl;
+    const pendingImages = images;
+    const pendingDocuments = documents;
+    const pendingPreviewUrls = imagePreviewUrls;
 
     setError(null);
     setSending(true);
     setDraft("");
-    setImage(null);
-    setDocument(null);
+    setImages([]);
+    setDocuments([]);
+
+    const optimisticAttachments: DisplayAttachment[] = [
+      ...pendingImages.map(
+        (f, i): DisplayAttachment => ({ kind: "IMAGE", name: f.name, mimeType: f.type, previewUrl: pendingPreviewUrls[i] }),
+      ),
+      ...pendingDocuments.map((f): DisplayAttachment => ({ kind: "DOCUMENT", name: f.name, mimeType: f.type })),
+    ];
+
     setMessages((prev) => [
       ...prev,
       {
         id: `pending-${Date.now()}`,
         role: "USER",
         content,
-        imageData: null,
-        imageMimeType: pendingImage?.type ?? null,
-        documentName: pendingDocument?.name ?? null,
+        attachments: optimisticAttachments.length > 0 ? optimisticAttachments : null,
         createdAt: new Date().toISOString(),
-        previewUrl: pendingPreviewUrl,
       },
     ]);
 
     try {
-      const reply = await sendAiMessage(content, pendingImage ?? undefined, pendingDocument ?? undefined);
+      const reply = await sendAiMessage(content, pendingImages, pendingDocuments);
       setMessages((prev) => [...prev, reply]);
       loadSubscription();
     } catch (err) {
@@ -159,7 +212,19 @@ export function AiHelperChat() {
       setError("Attaching photos is available on the Plus and Pro plans.");
       return;
     }
+    if (atFileLimit) {
+      setError(`Your plan allows up to ${maxFiles} file${maxFiles === 1 ? "" : "s"} per message.`);
+      return;
+    }
     imageInputRef.current?.click();
+  }
+
+  function handleAttachDocumentClick() {
+    if (atFileLimit) {
+      setError(`Your plan allows up to ${maxFiles} file${maxFiles === 1 ? "" : "s"} per message.`);
+      return;
+    }
+    documentInputRef.current?.click();
   }
 
   return (
@@ -170,10 +235,20 @@ export function AiHelperChat() {
         format your references or review your own writing for originality issues — it&apos;ll help you work
         through things, not just hand you the answer.
       </p>
-      {subscription && subscription.aiMessagesLimit !== null && (
+      {subscription && (
         <p className="mt-2 text-xs text-ink-300">
-          {subscription.aiMessagesUsed} / {subscription.aiMessagesLimit} messages used this month on the{" "}
-          {subscription.plan} plan ·{" "}
+          {subscription.aiMessagesLimit !== null ? (
+            <>
+              {subscription.aiMessagesUsed} / {subscription.aiMessagesLimit} messages
+              {subscription.plan === "FREE"
+                ? subscription.aiMessagesResetAt
+                  ? ` · resets in ${formatResetIn(subscription.aiMessagesResetAt)}`
+                  : ""
+                : " this month"}{" "}
+              on the {subscription.plan} plan ·{" "}
+            </>
+          ) : null}
+          Up to {subscription.maxFilesPerMessage} file{subscription.maxFilesPerMessage === 1 ? "" : "s"} per message ·{" "}
           <Link href="/student/subscription" className="font-semibold text-sky-700 hover:text-sky-600">
             Upgrade
           </Link>
@@ -187,35 +262,43 @@ export function AiHelperChat() {
           <p className="text-sm text-ink-300">Ask your first question below to get started.</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {messages.map((m) => {
-              const imageSrc = m.previewUrl ?? (m.imageData ? `data:${m.imageMimeType};base64,${m.imageData}` : null);
-              return (
-                <div
-                  key={m.id}
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                    m.role === "USER"
-                      ? "self-end whitespace-pre-wrap bg-sky-600 text-white"
-                      : "self-start bg-white text-ink-700 shadow-sm"
-                  }`}
-                >
-                  {imageSrc && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imageSrc} alt="Attached" className="mb-2 max-h-48 rounded-lg border border-white/20 object-contain" />
-                  )}
-                  {m.documentName && (
-                    <span
-                      className={`mb-2 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
-                        m.role === "USER" ? "border-white/25 text-white/90" : "border-ink-700/15 text-ink-500"
-                      }`}
-                    >
-                      <PaperclipIcon />
-                      {m.documentName}
-                    </span>
-                  )}
-                  {m.content && (m.role === "USER" ? m.content : <MarkdownContent content={m.content} />)}
-                </div>
-              );
-            })}
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                  m.role === "USER"
+                    ? "self-end whitespace-pre-wrap bg-sky-600 text-white"
+                    : "self-start bg-white text-ink-700 shadow-sm"
+                }`}
+              >
+                {m.attachments && m.attachments.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {m.attachments.map((att, i) =>
+                      att.kind === "IMAGE" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={i}
+                          src={att.previewUrl ?? `data:${att.mimeType};base64,${att.data}`}
+                          alt="Attached"
+                          className="max-h-48 rounded-lg border border-white/20 object-contain"
+                        />
+                      ) : (
+                        <span
+                          key={i}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                            m.role === "USER" ? "border-white/25 text-white/90" : "border-ink-700/15 text-ink-500"
+                          }`}
+                        >
+                          <PaperclipIcon />
+                          {att.name}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                )}
+                {m.content && (m.role === "USER" ? m.content : <MarkdownContent content={m.content} />)}
+              </div>
+            ))}
             {sending && (
               <div className="self-start rounded-2xl bg-white px-4 py-2.5 text-sm text-ink-300 shadow-sm">
                 Thinking...
@@ -232,40 +315,50 @@ export function AiHelperChat() {
         </div>
       )}
 
-      {imagePreviewUrl && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-ink-700/10 bg-white px-3 py-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imagePreviewUrl} alt="Selected attachment" className="h-10 w-10 rounded object-cover" />
-          <span className="flex-1 truncate text-xs text-ink-500">{image?.name}</span>
-          <button
-            type="button"
-            onClick={() => setImage(null)}
-            aria-label="Remove attached image"
-            className="text-ink-300 transition hover:text-ink-700"
-          >
-            <XIcon />
-          </button>
-        </div>
-      )}
-
-      {documentFile && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-ink-700/10 bg-white px-3 py-2">
-          <PaperclipIcon />
-          <span className="flex-1 truncate text-xs text-ink-500">{documentFile.name}</span>
-          <button
-            type="button"
-            onClick={() => setDocument(null)}
-            aria-label="Remove attached document"
-            className="text-ink-300 transition hover:text-ink-700"
-          >
-            <XIcon />
-          </button>
+      {(images.length > 0 || documents.length > 0) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {images.map((file, i) => (
+            <div key={`img-${i}`} className="flex items-center gap-2 rounded-lg border border-ink-700/10 bg-white px-3 py-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagePreviewUrls[i]} alt="Selected attachment" className="h-10 w-10 rounded object-cover" />
+              <span className="max-w-[140px] truncate text-xs text-ink-500">{file.name}</span>
+              <button
+                type="button"
+                onClick={() => removeImage(i)}
+                aria-label="Remove attached image"
+                className="text-ink-300 transition hover:text-ink-700"
+              >
+                <XIcon />
+              </button>
+            </div>
+          ))}
+          {documents.map((file, i) => (
+            <div key={`doc-${i}`} className="flex items-center gap-2 rounded-lg border border-ink-700/10 bg-white px-3 py-2">
+              <PaperclipIcon />
+              <span className="max-w-[140px] truncate text-xs text-ink-500">{file.name}</span>
+              <button
+                type="button"
+                onClick={() => removeDocument(i)}
+                aria-label="Remove attached document"
+                className="text-ink-300 transition hover:text-ink-700"
+              >
+                <XIcon />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="mt-4 flex gap-2 sm:gap-3">
-        <input ref={imageInputRef} type="file" accept="image/*" onChange={handlePickImage} className="hidden" />
-        <input ref={documentInputRef} type="file" accept={ACCEPTED_DOCUMENT_TYPES} onChange={handlePickDocument} className="hidden" />
+        <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handlePickImages} className="hidden" />
+        <input
+          ref={documentInputRef}
+          type="file"
+          accept={ACCEPTED_DOCUMENT_TYPES}
+          multiple
+          onChange={handlePickDocuments}
+          className="hidden"
+        />
         <button
           type="button"
           onClick={handleAttachImageClick}
@@ -278,7 +371,7 @@ export function AiHelperChat() {
         </button>
         <button
           type="button"
-          onClick={() => documentInputRef.current?.click()}
+          onClick={handleAttachDocumentClick}
           disabled={sending}
           aria-label="Attach a document"
           title="Attach a PDF or Word document"
@@ -293,7 +386,11 @@ export function AiHelperChat() {
           onChange={(e) => setDraft(e.target.value)}
           disabled={sending}
         />
-        <button type="submit" disabled={sending || (!draft.trim() && !image && !documentFile)} className={buttonClass("primary")}>
+        <button
+          type="submit"
+          disabled={sending || (!draft.trim() && images.length === 0 && documents.length === 0)}
+          className={buttonClass("primary")}
+        >
           Send
         </button>
       </form>

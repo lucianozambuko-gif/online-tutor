@@ -183,16 +183,12 @@ model AiMessage {
   conversation   AiConversation @relation(fields: [conversationId], references: [id])
   role           AiMessageRole
   content        String
-  // A photo the student attached (e.g. a homework problem) — stored inline as
-  // base64 since there's no object storage set up; kept small by the upload
-  // size limit enforced in the controller.
-  imageData      String?
-  imageMimeType  String?
-  // A PDF/Word document the student attached — unlike images, this is free
-  // on every plan, so we store the already-extracted text (not the raw file)
-  // rather than gating it behind vision.
-  documentText   String?
-  documentName   String?
+  // Files the student attached (images and/or PDF/Word documents) — a JSON
+  // array since a message can carry more than one, capped per plan (see
+  // PLAN_LIMITS.maxFilesPerMessage). Images keep their base64 for display
+  // (no object storage set up); documents keep only their extracted text.
+  // Shape: { kind: "IMAGE"; name; mimeType; data } | { kind: "DOCUMENT"; name; mimeType; text }
+  attachments    Json?
   createdAt      DateTime       @default(now())
 }
 
@@ -428,6 +424,10 @@ model Subscription {
   periodEnd      DateTime?
   aiMessagesUsed Int                @default(0)
   generationsUsed Int               @default(0)
+  // Free plan's AI Helper limit is a short rolling window (see
+  // FREE_AI_MESSAGE_WINDOW_HOURS) rather than the monthly period above, so it
+  // needs its own start marker — null until the student's first AI message.
+  aiMessageWindowStart DateTime?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 }

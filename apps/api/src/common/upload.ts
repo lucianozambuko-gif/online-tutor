@@ -44,13 +44,16 @@ const ALLOWED_DOCUMENT_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
 ]);
 
-// The AI Helper accepts an image OR a document per message (two named form
-// fields on one request), each with its own allowed mimetypes — checked here
-// by fieldname since FileFieldsInterceptor only takes one MulterOptions.
+// The AI Helper accepts any mix of images and documents per message (two
+// named, repeatable form fields on one request), each with its own allowed
+// mimetypes — checked here by fieldname since FileFieldsInterceptor only
+// takes one MulterOptions. How many files a plan is actually allowed is
+// enforced in AiService, not here — this only bounds what any plan could
+// ever send.
 export const aiAttachmentUploadOptions: MulterOptions = {
   limits: { fileSize: MAX_UPLOAD_BYTES },
   fileFilter: (_req, file, callback) => {
-    if (file.fieldname === 'image') {
+    if (file.fieldname === 'images') {
       if (!file.mimetype.startsWith('image/')) {
         callback(
           new BadRequestException('Only image files are allowed'),
@@ -58,7 +61,7 @@ export const aiAttachmentUploadOptions: MulterOptions = {
         );
         return;
       }
-    } else if (file.fieldname === 'document') {
+    } else if (file.fieldname === 'documents') {
       if (!ALLOWED_DOCUMENT_TYPES.has(file.mimetype)) {
         callback(
           new BadRequestException(
