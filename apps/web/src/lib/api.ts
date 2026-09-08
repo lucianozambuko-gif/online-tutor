@@ -1,4 +1,7 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+// Relative and same-origin on purpose — next.config.ts rewrites this to the
+// real API (NEXT_PUBLIC_API_URL) server-side, so the browser never makes a
+// cross-site request/cookie exchange at all. See next.config.ts for why.
+const API_URL = "/api";
 
 export type UserStatus = "PENDING_GUARDIAN_CONSENT" | "ACTIVE" | "SUSPENDED" | "DELETED";
 
