@@ -15,8 +15,10 @@ import {
   VerificationStatus,
 } from '../prisma/prisma-enums';
 import { CreateBookingDto } from './dto/create-booking.dto';
-
-const DEFAULT_COMMISSION_PERCENT = 15;
+import {
+  DEFAULT_COMMISSION_PERCENT,
+  MIN_HOURLY_RATE_ZAR,
+} from '../common/pricing';
 
 function getCommissionPercent(): number {
   const raw = process.env.PLATFORM_COMMISSION_PERCENT;
@@ -28,6 +30,7 @@ const BOOKING_INCLUDE = {
   student: { select: { id: true, name: true, email: true } },
   tutor: { select: { id: true, name: true, email: true } },
   payment: true,
+  review: true,
 } as const;
 
 @Injectable()
@@ -55,6 +58,14 @@ export class BookingsService {
     }
 
     const hourlyRate = Number(tutor.tutorProfile.hourlyRate);
+    // Defense in depth alongside the DTO's own @Min — a tutor who registered
+    // before this floor existed, or was updated directly, shouldn't still be
+    // bookable below it.
+    if (hourlyRate < MIN_HOURLY_RATE_ZAR) {
+      throw new ForbiddenException(
+        `This tutor's rate is below the platform minimum of R${MIN_HOURLY_RATE_ZAR}/hr and can't be booked yet`,
+      );
+    }
     const amount =
       Math.round(hourlyRate * (dto.durationMinutes / 60) * 100) / 100;
     const platformFee =

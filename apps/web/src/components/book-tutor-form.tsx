@@ -57,10 +57,12 @@ export function BookTutorForm({ onBooked }: { onBooked: () => void }) {
               <select id="tutorId" className={inputClass} value={tutorId} onChange={(e) => setTutorId(e.target.value)}>
                 {tutors.map((t) => {
                   const levels = t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ");
+                  const rating = t.tutorProfile.avgRating ? Number(t.tutorProfile.avgRating).toFixed(1) : null;
                   return (
                     <option key={t.id} value={t.id}>
                       {t.name} — {t.tutorProfile.subjects.join(", ")}
                       {levels ? ` (${levels})` : ""} — R{t.tutorProfile.hourlyRate}/hr
+                      {rating ? ` · ⭐ ${rating}` : ""}
                       {t.tutorProfile.transcriptVerified ? " · 🎓 Verified marks" : ""}
                     </option>
                   );

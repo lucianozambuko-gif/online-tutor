@@ -19,6 +19,7 @@ import { TutorStudentsModule } from './tutor-students/tutor-students.module';
 import { PayoutsModule } from './payouts/payouts.module';
 import { IssuesModule } from './issues/issues.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     PayoutsModule,
     IssuesModule,
     SubscriptionsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

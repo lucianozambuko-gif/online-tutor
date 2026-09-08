@@ -8,7 +8,8 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { GradeLevel } from '../../prisma/prisma-enums';
+import { BankAccountType, GradeLevel } from '../../prisma/prisma-enums';
+import { MIN_HOURLY_RATE_ZAR } from '../../common/pricing';
 
 export class UpdateTutorProfileDto {
   @IsOptional()
@@ -34,6 +35,28 @@ export class UpdateTutorProfileDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(MIN_HOURLY_RATE_ZAR, {
+    message: `hourlyRate must be at least R${MIN_HOURLY_RATE_ZAR}`,
+  })
   hourlyRate?: number;
+
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  accountHolder?: string;
+
+  @IsOptional()
+  @IsString()
+  accountNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  branchCode?: string;
+
+  @IsOptional()
+  @IsEnum(BankAccountType)
+  accountType?: BankAccountType;
 }

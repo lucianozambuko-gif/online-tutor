@@ -5,6 +5,7 @@ import {
   updateOwnTutorProfile,
   ApiError,
   GRADE_LEVEL_LABELS,
+  MIN_HOURLY_RATE_ZAR,
   type GradeLevel,
   type OwnTutorProfile,
 } from "@/lib/api";
@@ -139,11 +140,11 @@ export function TutorProfileForm({ initial }: { initial: OwnTutorProfile }) {
           </div>
         </div>
 
-        <Field label="Hourly rate (ZAR)" htmlFor="hourlyRate">
+        <Field label="Hourly rate (ZAR)" htmlFor="hourlyRate" hint={`Minimum R${MIN_HOURLY_RATE_ZAR}/hr.`}>
           <input
             id="hourlyRate"
             type="number"
-            min={0}
+            min={MIN_HOURLY_RATE_ZAR}
             className={inputClass}
             value={hourlyRate}
             onChange={(e) => setHourlyRate(e.target.value)}

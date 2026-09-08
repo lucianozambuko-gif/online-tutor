@@ -5,7 +5,10 @@ import { getOwnTutorProfile, ApiError, type OwnTutorProfile } from "@/lib/api";
 import { TutorProfileForm } from "@/components/tutor-profile-form";
 import { AvatarUploader } from "@/components/avatar-uploader";
 import { TranscriptUploader } from "@/components/transcript-uploader";
+import { BankDetailsForm } from "@/components/bank-details-form";
+import { TutorReviewsCard } from "@/components/tutor-reviews-card";
 import { Card } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
 
 function VerificationBanner({ status }: { status: OwnTutorProfile["verificationStatus"] }) {
   if (status === "APPROVED") return null;
@@ -28,6 +31,7 @@ function VerificationBanner({ status }: { status: OwnTutorProfile["verificationS
 }
 
 export default function TutorProfilePage() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<OwnTutorProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +55,9 @@ export default function TutorProfilePage() {
       {profile ? (
         <>
           <TutorProfileForm initial={profile} />
+          <BankDetailsForm initial={profile} />
           <TranscriptUploader initial={profile} />
+          {user && <TutorReviewsCard tutorId={user.id} />}
         </>
       ) : (
         <p className="text-sm text-ink-500">Loading your profile...</p>

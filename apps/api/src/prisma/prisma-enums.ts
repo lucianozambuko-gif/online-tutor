@@ -16,4 +16,5 @@ export {
   SubscriptionStatus,
   GradeLevel,
   InstitutionType,
+  BankAccountType,
 } from '../../generated/prisma/client';

@@ -316,6 +316,20 @@ model TutorProfile {
   transcriptMimeType     String?
   transcriptName         String?
   transcriptVerified     Boolean                @default(false)
+  // Where an admin sends this tutor's payout via manual EFT — there's no
+  // payout-capable payment API wired up (PayFast only accepts payments in,
+  // it doesn't disburse to third parties), so this just removes the need to
+  // chase the tutor for their account details every time.
+  bankName               String?
+  accountHolder          String?
+  accountNumber          String?
+  branchCode             String?
+  accountType            BankAccountType?
+}
+
+enum BankAccountType {
+  SAVINGS
+  CHEQUE
 }
 
 enum GradeLevel {

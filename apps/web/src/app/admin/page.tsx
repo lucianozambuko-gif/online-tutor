@@ -190,11 +190,18 @@ export default function AdminDashboard() {
   }
 
   async function handleMarkPaid(payout: Payout) {
-    if (!window.confirm(`Mark the R${Number(payout.totalAmount).toFixed(2)} payout to ${payout.tutor?.name} as paid?`)) return;
+    const reference = window.prompt(
+      `Enter the EFT reference/confirmation number for the R${Number(payout.totalAmount).toFixed(2)} payout to ${payout.tutor?.name}:`,
+    );
+    if (reference === null) return;
+    if (!reference.trim()) {
+      setPayoutError("A reference number is required to mark a payout as paid.");
+      return;
+    }
     setMarkingPaidId(payout.id);
     setPayoutError(null);
     try {
-      await markPayoutPaid(payout.id);
+      await markPayoutPaid(payout.id, reference.trim());
       setPayoutsLoading(true);
       loadPayouts();
     } catch (err) {
@@ -564,35 +571,53 @@ export default function AdminDashboard() {
           <p className="mt-4 text-sm text-ink-500">No payouts yet.</p>
         ) : (
           <ul className="mt-4 space-y-3">
-            {payouts.map((p) => (
-              <li
-                key={p.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-700/10 p-4"
-              >
-                <div>
-                  <p className="text-sm font-medium text-ink-900">{p.tutor?.name}</p>
-                  <p className="text-xs text-ink-500">
-                    {formatDate(p.periodStart)} – {formatDate(p.periodEnd)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-display text-base font-semibold text-ink-900">
-                    R{Number(p.totalAmount).toFixed(2)}
-                  </span>
-                  <StatusBadge status={p.status} />
+            {payouts.map((p) => {
+              const bank = p.tutor?.tutorProfile;
+              const hasBankDetails = bank && (bank.bankName || bank.accountNumber);
+              return (
+                <li key={p.id} className="rounded-xl border border-ink-700/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-ink-900">{p.tutor?.name}</p>
+                      <p className="text-xs text-ink-500">
+                        {formatDate(p.periodStart)} – {formatDate(p.periodEnd)} · {(p.totalMinutes / 60).toFixed(1)}{" "}
+                        hours tutored
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-display text-base font-semibold text-ink-900">
+                        R{Number(p.totalAmount).toFixed(2)}
+                      </span>
+                      <StatusBadge status={p.status} />
+                      {p.status === "PENDING" && (
+                        <button
+                          type="button"
+                          disabled={markingPaidId === p.id}
+                          onClick={() => handleMarkPaid(p)}
+                          className={buttonClass("outline", "px-3 py-1.5 text-xs")}
+                        >
+                          Mark paid
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   {p.status === "PENDING" && (
-                    <button
-                      type="button"
-                      disabled={markingPaidId === p.id}
-                      onClick={() => handleMarkPaid(p)}
-                      className={buttonClass("outline", "px-3 py-1.5 text-xs")}
-                    >
-                      Mark paid
-                    </button>
+                    <p className="mt-2 text-xs text-ink-300">
+                      {hasBankDetails ? (
+                        <>
+                          Pay to: {bank.accountHolder || p.tutor?.name} · {bank.bankName} · Acc {bank.accountNumber}
+                          {bank.branchCode ? ` · Branch ${bank.branchCode}` : ""}
+                          {bank.accountType ? ` · ${bank.accountType === "SAVINGS" ? "Savings" : "Cheque/Current"}` : ""}
+                        </>
+                      ) : (
+                        "This tutor hasn't added bank details yet — ask them to add these on their profile before paying out."
+                      )}
+                    </p>
                   )}
-                </div>
-              </li>
-            ))}
+                  {p.reference && <p className="mt-1 text-xs text-ink-300">Reference: {p.reference}</p>}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

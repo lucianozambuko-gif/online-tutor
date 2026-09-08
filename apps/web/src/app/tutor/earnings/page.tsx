@@ -8,8 +8,17 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function formatHours(minutes: number) {
+  return (minutes / 60).toFixed(1);
+}
+
 export default function TutorEarningsPage() {
-  const [data, setData] = useState<{ pendingAmount: number; lifetimePaid: number; payouts: Payout[] } | null>(null);
+  const [data, setData] = useState<{
+    pendingAmount: number;
+    pendingMinutes: number;
+    lifetimePaid: number;
+    payouts: Payout[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,7 +45,8 @@ export default function TutorEarningsPage() {
               <p className="text-xs font-medium uppercase tracking-wide text-ink-300">Awaiting payout</p>
               <p className="mt-2 font-display text-3xl font-bold text-ink-900">R{data.pendingAmount.toFixed(2)}</p>
               <p className="mt-1 text-xs text-ink-500">
-                From completed, paid sessions not yet included in a payout batch.
+                From completed, paid sessions not yet included in a payout batch — {formatHours(data.pendingMinutes)}{" "}
+                hours tutored.
               </p>
             </Card>
             <Card>
@@ -64,7 +74,7 @@ export default function TutorEarningsPage() {
                         {formatDate(p.periodStart)} – {formatDate(p.periodEnd)}
                       </p>
                       <p className="text-xs text-ink-500">
-                        {p.payoutMethod}
+                        {p.payoutMethod} · {formatHours(p.totalMinutes)} hours
                         {p.reference ? ` · ${p.reference}` : ""}
                       </p>
                     </div>

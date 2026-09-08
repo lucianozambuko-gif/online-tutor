@@ -11,23 +11,56 @@ import {
 } from '../prisma/prisma-enums';
 import { MarkPayoutPaidDto } from './dto/mark-payout-paid.dto';
 
+const TUTOR_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  tutorProfile: {
+    select: {
+      bankName: true,
+      accountHolder: true,
+      accountNumber: true,
+      branchCode: true,
+      accountType: true,
+    },
+  },
+} as const;
+
+function withTotalMinutes<
+  T extends { payments: { booking: { durationMinutes: number } }[] },
+>(payout: T) {
+  const totalMinutes = payout.payments.reduce(
+    (sum, p) => sum + p.booking.durationMinutes,
+    0,
+  );
+  return { ...payout, totalMinutes };
+}
+
 @Injectable()
 export class PayoutsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async mySummary(tutorId: string) {
-    const [pendingPayments, payouts] = await Promise.all([
+    const [pendingPayments, payoutRows] = await Promise.all([
       this.prisma.payment.findMany({
         where: {
           status: PaymentStatus.PAID,
           payoutId: null,
           booking: { tutorId, status: BookingStatus.COMPLETED },
         },
-        select: { tutorPayoutAmount: true },
+        select: {
+          tutorPayoutAmount: true,
+          booking: { select: { durationMinutes: true } },
+        },
       }),
       this.prisma.payout.findMany({
         where: { tutorId },
         orderBy: { createdAt: 'desc' },
+        include: {
+          payments: {
+            select: { booking: { select: { durationMinutes: true } } },
+          },
+        },
       }),
     ]);
 
@@ -35,18 +68,29 @@ export class PayoutsService {
       (sum, p) => sum + Number(p.tutorPayoutAmount),
       0,
     );
+    const pendingMinutes = pendingPayments.reduce(
+      (sum, p) => sum + p.booking.durationMinutes,
+      0,
+    );
+    const payouts = payoutRows.map(withTotalMinutes);
     const lifetimePaid = payouts
       .filter((p) => p.status === PayoutStatus.PAID)
       .reduce((sum, p) => sum + Number(p.totalAmount), 0);
 
-    return { pendingAmount, lifetimePaid, payouts };
+    return { pendingAmount, pendingMinutes, lifetimePaid, payouts };
   }
 
-  listAll() {
-    return this.prisma.payout.findMany({
-      include: { tutor: { select: { id: true, name: true, email: true } } },
+  async listAll() {
+    const payouts = await this.prisma.payout.findMany({
+      include: {
+        tutor: { select: TUTOR_SELECT },
+        payments: {
+          select: { booking: { select: { durationMinutes: true } } },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
+    return payouts.map(withTotalMinutes);
   }
 
   // Batches every eligible payment (paid, not yet in a payout, for a completed
@@ -97,12 +141,17 @@ export class PayoutsService {
             status: PayoutStatus.PENDING,
             payments: { connect: payments.map((p) => ({ id: p.id })) },
           },
-          include: { tutor: { select: { id: true, name: true, email: true } } },
+          include: {
+            tutor: { select: TUTOR_SELECT },
+            payments: {
+              select: { booking: { select: { durationMinutes: true } } },
+            },
+          },
         });
       }),
     );
 
-    return { created };
+    return { created: created.map(withTotalMinutes) };
   }
 
   async markPaid(id: string, dto: MarkPayoutPaidDto) {
@@ -121,7 +170,7 @@ export class PayoutsService {
         paidAt: new Date(),
         reference: dto.reference,
       },
-      include: { tutor: { select: { id: true, name: true, email: true } } },
+      include: { tutor: { select: TUTOR_SELECT } },
     });
   }
 }

@@ -113,12 +113,21 @@ export function listTutors(): Promise<TutorSummary[]> {
   return apiFetch("/tutors");
 }
 
+export const MIN_HOURLY_RATE_ZAR = 50;
+
+export type BankAccountType = "SAVINGS" | "CHEQUE";
+
 export function updateOwnTutorProfile(data: {
   subjects?: string[];
   gradeLevels?: GradeLevel[];
   qualifications?: string[];
   bio?: string;
   hourlyRate?: number;
+  bankName?: string;
+  accountHolder?: string;
+  accountNumber?: string;
+  branchCode?: string;
+  accountType?: BankAccountType;
 }) {
   return apiFetch("/tutors/me", { method: "PATCH", body: JSON.stringify(data) });
 }
@@ -137,6 +146,11 @@ export interface OwnTutorProfile {
   verificationStatus: VerificationStatus;
   transcriptName: string | null;
   transcriptVerified: boolean;
+  bankName: string | null;
+  accountHolder: string | null;
+  accountNumber: string | null;
+  branchCode: string | null;
+  accountType: BankAccountType | null;
 }
 
 export function getOwnTutorProfile(): Promise<OwnTutorProfile> {
@@ -185,6 +199,14 @@ export function setTutorVerification(tutorId: string, status: VerificationStatus
 export type BookingStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "DISPUTED";
 export type PaymentStatus = "PENDING" | "PAID" | "PARTIALLY_REFUNDED" | "REFUNDED" | "FAILED";
 
+export interface Review {
+  id: string;
+  bookingId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
 export interface Booking {
   id: string;
   subject: string;
@@ -196,6 +218,7 @@ export interface Booking {
   student: { id: string; name: string; email: string };
   tutor: { id: string; name: string; email: string };
   payment: { id: string; amount: string; status: PaymentStatus } | null;
+  review: Review | null;
 }
 
 export function createBooking(data: {
@@ -230,6 +253,26 @@ export function completeBooking(id: string): Promise<Booking> {
 
 export function initiatePayment(bookingId: string): Promise<{ actionUrl: string; fields: Record<string, string> }> {
   return apiFetch(`/payments/${bookingId}/initiate`, { method: "POST" });
+}
+
+export interface TutorReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  studentDisplayName: string;
+}
+
+export function createReview(data: { bookingId: string; rating: number; comment?: string }): Promise<Review> {
+  return apiFetch("/reviews", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function listMyReviews(): Promise<Review[]> {
+  return apiFetch("/reviews/mine");
+}
+
+export function listTutorReviews(tutorId: string): Promise<TutorReview[]> {
+  return apiFetch(`/reviews/tutor/${tutorId}`);
 }
 
 export interface AdminUser {
@@ -475,6 +518,14 @@ export function getTutorNote(id: string): Promise<TutorNote> {
 
 export type PayoutStatus = "PENDING" | "PAID" | "FAILED";
 
+export interface PayoutBankDetails {
+  bankName: string | null;
+  accountHolder: string | null;
+  accountNumber: string | null;
+  branchCode: string | null;
+  accountType: BankAccountType | null;
+}
+
 export interface Payout {
   id: string;
   tutorId: string;
@@ -486,10 +537,16 @@ export interface Payout {
   reference: string | null;
   paidAt: string | null;
   createdAt: string;
-  tutor?: { id: string; name: string; email: string };
+  totalMinutes: number;
+  tutor?: { id: string; name: string; email: string; tutorProfile: PayoutBankDetails };
 }
 
-export function getMyPayoutSummary(): Promise<{ pendingAmount: number; lifetimePaid: number; payouts: Payout[] }> {
+export function getMyPayoutSummary(): Promise<{
+  pendingAmount: number;
+  pendingMinutes: number;
+  lifetimePaid: number;
+  payouts: Payout[];
+}> {
   return apiFetch("/payouts/me");
 }
 
