@@ -38,7 +38,7 @@ function XIcon() {
 }
 
 export function TutorNoteForm({ studentId, roster, onCreated }: Props) {
-  const [selectedStudentId, setSelectedStudentId] = useState(studentId ?? roster?.[0]?.student.id ?? "");
+  const [selectedStudentId, setSelectedStudentId] = useState(studentId ?? "");
   const [topic, setTopic] = useState("");
   const [rawInput, setRawInput] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
@@ -64,7 +64,7 @@ export function TutorNoteForm({ studentId, roster, onCreated }: Props) {
     setSubmitting(true);
     try {
       const note = await generateTutorNote({
-        studentId: selectedStudentId,
+        studentId: selectedStudentId || undefined,
         topic,
         rawInput,
         attachment: attachment ?? undefined,
@@ -88,14 +88,14 @@ export function TutorNoteForm({ studentId, roster, onCreated }: Props) {
       </p>
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
         {roster && (
-          <Field label="Student" htmlFor="tutor-note-student">
+          <Field label="Student (optional)" htmlFor="tutor-note-student">
             <select
               id="tutor-note-student"
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
-              required
               className={inputClass}
             >
+              <option value="">General note (no student)</option>
               {roster.map((entry) => (
                 <option key={entry.student.id} value={entry.student.id}>
                   {entry.student.name}
@@ -170,7 +170,7 @@ export function TutorNoteForm({ studentId, roster, onCreated }: Props) {
 
         {error && <ErrorText>{error}</ErrorText>}
 
-        <button type="submit" disabled={submitting || !selectedStudentId} className={buttonClass("primary", "w-full sm:w-auto")}>
+        <button type="submit" disabled={submitting} className={buttonClass("primary", "w-full sm:w-auto")}>
           {submitting ? "Generating..." : "Generate note"}
         </button>
       </form>

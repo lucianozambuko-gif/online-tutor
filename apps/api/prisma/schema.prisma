@@ -311,6 +311,8 @@ model Booking {
   status          BookingStatus @default(PENDING)
   sessionNotesUrl String?
   recordingUrl    String?
+  // Auto-generated Jitsi Meet room for ONLINE bookings, set at creation time.
+  meetingUrl      String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -323,15 +325,17 @@ model Booking {
 }
 
 // A tutor's own notes on a student's progress — separate from the student's
-// AI-generated study Notes model. Optionally tied to a specific session
-// (bookingId) or general (null), and optionally AI-polished from a tutor's
-// rough bullet points via the same GroqService as the student-side features.
+// AI-generated study Notes model. Optionally tied to a student (studentId)
+// and/or a specific session (bookingId), or fully general (both null) for a
+// tutor's own prep/reminders that don't require any existing booking.
+// Optionally AI-polished from a tutor's rough bullet points via the same
+// GroqService as the student-side features.
 model TutorNote {
   id        String   @id @default(cuid())
   tutorId   String
   tutor     User     @relation("TutorNotesByTutor", fields: [tutorId], references: [id])
-  studentId String
-  student   User     @relation("TutorNotesAboutStudent", fields: [studentId], references: [id])
+  studentId String?
+  student   User?    @relation("TutorNotesAboutStudent", fields: [studentId], references: [id])
   bookingId String?
   booking   Booking? @relation(fields: [bookingId], references: [id])
   topic     String

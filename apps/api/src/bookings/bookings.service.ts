@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -68,6 +69,10 @@ export class BookingsService {
         scheduledAt: new Date(dto.scheduledAt),
         durationMinutes: dto.durationMinutes,
         mode: dto.mode,
+        meetingUrl:
+          dto.mode === 'ONLINE'
+            ? `https://meet.jit.si/Lumen-${randomBytes(12).toString('hex')}`
+            : null,
         payment: {
           create: {
             payerId: studentId,

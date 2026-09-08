@@ -137,6 +137,7 @@ export interface Booking {
   durationMinutes: number;
   mode: "ONLINE" | "IN_PERSON";
   status: BookingStatus;
+  meetingUrl: string | null;
   student: { id: string; name: string; email: string };
   tutor: { id: string; name: string; email: string };
   payment: { id: string; amount: string; status: PaymentStatus } | null;
@@ -377,7 +378,7 @@ export function getTutorStudent(studentId: string): Promise<{ student: { id: str
 
 export interface TutorNote {
   id: string;
-  studentId: string;
+  studentId: string | null;
   bookingId: string | null;
   topic: string;
   content: string;
@@ -385,18 +386,18 @@ export interface TutorNote {
   attachmentMimeType: string | null;
   attachmentName: string | null;
   createdAt: string;
-  student: { id: string; name: string };
+  student: { id: string; name: string } | null;
 }
 
 export function generateTutorNote(data: {
-  studentId: string;
+  studentId?: string;
   topic: string;
   rawInput: string;
   bookingId?: string;
   attachment?: File;
 }): Promise<TutorNote> {
   const form = new FormData();
-  form.append("studentId", data.studentId);
+  if (data.studentId) form.append("studentId", data.studentId);
   form.append("topic", data.topic);
   form.append("rawInput", data.rawInput);
   if (data.bookingId) form.append("bookingId", data.bookingId);

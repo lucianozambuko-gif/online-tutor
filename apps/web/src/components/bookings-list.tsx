@@ -97,6 +97,16 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {b.status === "CONFIRMED" && b.mode === "ONLINE" && b.meetingUrl && (
+                    <a
+                      href={b.meetingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={buttonClass("gold")}
+                    >
+                      Join meeting
+                    </a>
+                  )}
                   {role === "TUTOR" && b.status === "PENDING" && (
                     <>
                       <button

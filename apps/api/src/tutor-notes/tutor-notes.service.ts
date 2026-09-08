@@ -33,9 +33,11 @@ export class TutorNotesService {
     dto: GenerateTutorNoteDto,
     attachment?: Express.Multer.File,
   ) {
-    await this.assertHasTutored(tutorId, dto.studentId);
+    if (dto.studentId) {
+      await this.assertHasTutored(tutorId, dto.studentId);
+    }
 
-    if (dto.bookingId) {
+    if (dto.bookingId && dto.studentId) {
       const booking = await this.prisma.booking.findFirst({
         where: { id: dto.bookingId, tutorId, studentId: dto.studentId },
       });

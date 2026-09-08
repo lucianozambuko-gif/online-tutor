@@ -15,7 +15,10 @@ export default function GenerateTutorNotePage() {
   useEffect(() => {
     listTutorStudents()
       .then(setRoster)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load your students."));
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Couldn't load your students.");
+        setRoster([]);
+      });
   }, []);
 
   return (
@@ -33,13 +36,12 @@ export default function GenerateTutorNotePage() {
 
       {!roster ? (
         <p className="mt-4 text-sm text-ink-500">Loading your students...</p>
-      ) : roster.length === 0 ? (
-        <p className="mt-4 text-sm text-ink-500">
-          You don&apos;t have any students yet — accept a booking request first.
-        </p>
       ) : (
         <div className="mt-5">
-          <TutorNoteForm roster={roster} onCreated={(note) => router.push(`/tutor/students/${note.studentId}`)} />
+          <TutorNoteForm
+            roster={roster}
+            onCreated={(note) => router.push(note.studentId ? `/tutor/students/${note.studentId}` : "/tutor/notes")}
+          />
         </div>
       )}
     </div>

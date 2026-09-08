@@ -1,8 +1,9 @@
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class GenerateTutorNoteDto {
+  @IsOptional()
   @IsString()
-  studentId: string;
+  studentId?: string;
 
   @IsString()
   @MaxLength(200)
