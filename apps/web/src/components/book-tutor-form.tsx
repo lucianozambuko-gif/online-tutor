@@ -61,6 +61,7 @@ export function BookTutorForm({ onBooked }: { onBooked: () => void }) {
                     <option key={t.id} value={t.id}>
                       {t.name} — {t.tutorProfile.subjects.join(", ")}
                       {levels ? ` (${levels})` : ""} — R{t.tutorProfile.hourlyRate}/hr
+                      {t.tutorProfile.transcriptVerified ? " · 🎓 Verified marks" : ""}
                     </option>
                   );
                 })}

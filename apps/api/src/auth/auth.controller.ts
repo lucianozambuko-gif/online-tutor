@@ -86,6 +86,7 @@ export class AuthController {
         name: user.name,
         role: user.role,
         status: user.status,
+        avatarUrl: user.avatarUrl,
       },
     };
   }

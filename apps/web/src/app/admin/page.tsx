@@ -9,6 +9,7 @@ import {
   markPayoutPaid,
   listAdminTutors,
   setTutorVerification,
+  setTutorTranscriptVerified,
   listAllIssueReports,
   updateIssueReport,
   listAdminSubscriptions,
@@ -94,6 +95,20 @@ export default function AdminDashboard() {
     setTutorsError(null);
     try {
       await setTutorVerification(tutor.id, status);
+      setTutorsLoading(true);
+      loadTutors();
+    } catch (err) {
+      setTutorsError(err instanceof ApiError ? err.message : "Failed to update this tutor");
+    } finally {
+      setDecidingTutorId(null);
+    }
+  }
+
+  async function handleTranscriptVerified(tutor: AdminTutor, verified: boolean) {
+    setDecidingTutorId(tutor.id);
+    setTutorsError(null);
+    try {
+      await setTutorTranscriptVerified(tutor.id, verified);
       setTutorsLoading(true);
       loadTutors();
     } catch (err) {
@@ -267,6 +282,40 @@ export default function AdminDashboard() {
                     {t.tutorProfile.gradeLevels.length > 0 &&
                       ` · ${t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ")}`}
                   </p>
+                  {t.tutorProfile.transcriptName && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-ink-700/8 pt-2.5">
+                      <a
+                        href={`data:${t.tutorProfile.transcriptMimeType};base64,${t.tutorProfile.transcriptData}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-sky-700 hover:text-sky-600"
+                      >
+                        View transcript ({t.tutorProfile.transcriptName})
+                      </a>
+                      {t.tutorProfile.transcriptVerified ? (
+                        <>
+                          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Verified</span>
+                          <button
+                            type="button"
+                            disabled={decidingTutorId === t.id}
+                            onClick={() => handleTranscriptVerified(t, false)}
+                            className={buttonClass("ghost", "px-2.5 py-1 text-xs")}
+                          >
+                            Unmark
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={decidingTutorId === t.id}
+                          onClick={() => handleTranscriptVerified(t, true)}
+                          className={buttonClass("outline", "px-2.5 py-1 text-xs")}
+                        >
+                          Mark verified
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </li>
               ))}
           </ul>

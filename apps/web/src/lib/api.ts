@@ -11,6 +11,7 @@ export interface CurrentUser {
   name: string;
   role: "STUDENT" | "TUTOR" | "ADMIN";
   status: UserStatus;
+  avatarUrl: string | null;
 }
 
 export class ApiError extends Error {
@@ -64,6 +65,16 @@ export function fetchCurrentUser(): Promise<{ user: CurrentUser | null }> {
   return apiFetch("/auth/me");
 }
 
+export function uploadAvatar(file: File): Promise<{ id: string; avatarUrl: string | null }> {
+  const form = new FormData();
+  form.append("avatar", file);
+  return apiFetch("/users/me/avatar", { method: "PATCH", body: form });
+}
+
+export function removeAvatar(): Promise<{ id: string; avatarUrl: string | null }> {
+  return apiFetch("/users/me/avatar", { method: "DELETE" });
+}
+
 export type GradeLevel = "PRIMARY" | "HIGH_SCHOOL" | "VARSITY";
 
 export const GRADE_LEVEL_LABELS: Record<GradeLevel, string> = {
@@ -75,6 +86,7 @@ export const GRADE_LEVEL_LABELS: Record<GradeLevel, string> = {
 export interface TutorSummary {
   id: string;
   name: string;
+  avatarUrl: string | null;
   tutorProfile: {
     subjects: string[];
     gradeLevels: GradeLevel[];
@@ -82,6 +94,7 @@ export interface TutorSummary {
     bio: string | null;
     avgRating: string | null;
     verificationStatus: string;
+    transcriptVerified: boolean;
   };
 }
 
@@ -111,10 +124,18 @@ export interface OwnTutorProfile {
   bio: string | null;
   avgRating: string | null;
   verificationStatus: VerificationStatus;
+  transcriptName: string | null;
+  transcriptVerified: boolean;
 }
 
 export function getOwnTutorProfile(): Promise<OwnTutorProfile> {
   return apiFetch("/tutors/me");
+}
+
+export function uploadTutorTranscript(file: File): Promise<OwnTutorProfile> {
+  const form = new FormData();
+  form.append("transcript", file);
+  return apiFetch("/tutors/me/transcript", { method: "PATCH", body: form });
 }
 
 export interface AdminTutor {
@@ -128,7 +149,18 @@ export interface AdminTutor {
     hourlyRate: string;
     bio: string | null;
     verificationStatus: VerificationStatus;
+    transcriptName: string | null;
+    transcriptMimeType: string | null;
+    transcriptData: string | null;
+    transcriptVerified: boolean;
   };
+}
+
+export function setTutorTranscriptVerified(tutorId: string, verified: boolean): Promise<AdminTutor> {
+  return apiFetch(`/tutors/${tutorId}/transcript-verified`, {
+    method: "PATCH",
+    body: JSON.stringify({ verified }),
+  });
 }
 
 export function listAdminTutors(): Promise<AdminTutor[]> {

@@ -4,8 +4,12 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -13,6 +17,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
+import { imageUploadOptions } from '../common/upload';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -31,6 +36,26 @@ export class UsersController {
   @Roles(Role.STUDENT, Role.TUTOR)
   removeSelf(@CurrentUser() currentUser: JwtPayload) {
     return this.usersService.softDelete(currentUser.sub);
+  }
+
+  @Patch('me/avatar')
+  @Roles(Role.STUDENT, Role.TUTOR, Role.ADMIN)
+  @UseInterceptors(FileInterceptor('avatar', imageUploadOptions))
+  setAvatar(
+    @CurrentUser() currentUser: JwtPayload,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No image uploaded');
+    }
+    const dataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    return this.usersService.setAvatar(currentUser.sub, dataUrl);
+  }
+
+  @Delete('me/avatar')
+  @Roles(Role.STUDENT, Role.TUTOR, Role.ADMIN)
+  removeAvatar(@CurrentUser() currentUser: JwtPayload) {
+    return this.usersService.setAvatar(currentUser.sub, null);
   }
 
   @Delete(':id')

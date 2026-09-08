@@ -194,9 +194,14 @@ export function TutorSidebar({ open = false, onClose }: { open?: boolean; onClos
 
       {user && (
         <div className="flex items-center gap-2.5 border-t border-ink-700/8 pt-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100">
-            <span className="font-display text-sm font-semibold text-sky-700">{initials(user.name)}</span>
-          </div>
+          {user.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100">
+              <span className="font-display text-sm font-semibold text-sky-700">{initials(user.name)}</span>
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13px] font-semibold text-ink-900">{user.name}</p>
             <span className="mt-0.5 inline-block rounded-full bg-sky-100 px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-sky-700">

@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { getOwnTutorProfile, ApiError, type OwnTutorProfile } from "@/lib/api";
 import { TutorProfileForm } from "@/components/tutor-profile-form";
+import { AvatarUploader } from "@/components/avatar-uploader";
+import { TranscriptUploader } from "@/components/transcript-uploader";
+import { Card } from "@/components/ui";
 
 function VerificationBanner({ status }: { status: OwnTutorProfile["verificationStatus"] }) {
   if (status === "APPROVED") return null;
@@ -42,7 +45,17 @@ export default function TutorProfilePage() {
       </div>
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       {profile && <VerificationBanner status={profile.verificationStatus} />}
-      {profile ? <TutorProfileForm initial={profile} /> : <p className="text-sm text-ink-500">Loading your profile...</p>}
+      <Card>
+        <AvatarUploader />
+      </Card>
+      {profile ? (
+        <>
+          <TutorProfileForm initial={profile} />
+          <TranscriptUploader initial={profile} />
+        </>
+      ) : (
+        <p className="text-sm text-ink-500">Loading your profile...</p>
+      )}
     </div>
   );
 }

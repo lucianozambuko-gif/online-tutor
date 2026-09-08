@@ -299,6 +299,13 @@ model TutorProfile {
   hourlyRate             Decimal                @db.Decimal(10, 2)
   bio                    String?
   avgRating              Decimal?               @db.Decimal(3, 2)
+  // Optional proof of marks/qualifications for the subjects offered — an
+  // admin reviews it and flips transcriptVerified, which becomes a public
+  // trust signal on the tutor's listing. Not required to be bookable.
+  transcriptData         String?
+  transcriptMimeType     String?
+  transcriptName         String?
+  transcriptVerified     Boolean                @default(false)
 }
 
 enum GradeLevel {
