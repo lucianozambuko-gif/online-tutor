@@ -20,6 +20,7 @@ import { PayoutsModule } from './payouts/payouts.module';
 import { IssuesModule } from './issues/issues.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     IssuesModule,
     SubscriptionsModule,
     ReviewsModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

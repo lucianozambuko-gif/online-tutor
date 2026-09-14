@@ -33,6 +33,15 @@ export class BookingsController {
     return this.bookingsService.findMine(user.sub, user.role);
   }
 
+  // Declared before ':id' — otherwise Nest would match "admin" as an :id
+  // param and this route would never be reached.
+  @Get('admin/list')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  adminList() {
+    return this.bookingsService.adminList();
+  }
+
   @Get(':id')
   findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.bookingsService.findOne(id, user.sub, user.role);

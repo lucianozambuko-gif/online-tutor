@@ -73,18 +73,23 @@ export class TutorsController {
   @Patch(':id/verification')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  setVerification(@Param('id') id: string, @Body() dto: UpdateVerificationDto) {
-    return this.tutorsService.setVerification(id, dto);
+  setVerification(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateVerificationDto,
+  ) {
+    return this.tutorsService.setVerification(user.sub, id, dto);
   }
 
   @Patch(':id/transcript-verified')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   setTranscriptVerified(
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() dto: UpdateTranscriptVerifiedDto,
   ) {
-    return this.tutorsService.setTranscriptVerified(id, dto.verified);
+    return this.tutorsService.setTranscriptVerified(user.sub, id, dto.verified);
   }
 
   @Get(':id')

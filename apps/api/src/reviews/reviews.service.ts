@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import { BookingStatus } from '../prisma/prisma-enums';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 // Shown alongside a review rather than the reviewer's full name — enough for
 // a tutor/other students to tell reviews apart without a stranger's full
@@ -21,7 +22,10 @@ function displayName(fullName: string): string {
 
 @Injectable()
 export class ReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async create(studentId: string, dto: CreateReviewDto) {
     const booking = await this.prisma.booking.findUnique({
@@ -103,5 +107,30 @@ export class ReviewsService {
       where: { studentId },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // Admin-only moderation view — every review, with enough context (both
+  // names, the booking subject) to judge whether one needs removing.
+  adminList() {
+    return this.prisma.review.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        student: { select: { id: true, name: true } },
+        tutor: { select: { id: true, name: true } },
+        booking: { select: { id: true, subject: true } },
+      },
+    });
+  }
+
+  async adminDelete(adminId: string, id: string) {
+    const review = await this.prisma.review.findUnique({ where: { id } });
+    if (!review) {
+      throw new NotFoundException('Review not found');
+    }
+
+    await this.prisma.review.delete({ where: { id } });
+    await this.recomputeAvgRating(review.tutorId);
+    await this.auditLog.record(adminId, 'REVIEW_DELETED', 'Review', id);
+    return { deleted: true };
   }
 }

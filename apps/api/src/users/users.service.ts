@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitutionType, Role, UserStatus } from '../prisma/prisma-enums';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
@@ -98,5 +102,11 @@ export class UsersService {
         createdAt: true,
       },
     });
+  }
+
+  async adminSoftDelete(adminId: string, id: string) {
+    const result = await this.softDelete(id);
+    await this.auditLog.record(adminId, 'USER_DELETED', 'User', id);
+    return result;
   }
 }

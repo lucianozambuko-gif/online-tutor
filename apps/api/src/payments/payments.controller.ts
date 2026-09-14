@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -41,7 +42,18 @@ export class PaymentsController {
   @Post(':id/refund')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  refund(@Param('id') id: string, @Body() dto: RefundPaymentDto) {
-    return this.paymentsService.refund(id, dto);
+  refund(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: RefundPaymentDto,
+  ) {
+    return this.paymentsService.refund(user.sub, id, dto);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  adminList() {
+    return this.paymentsService.adminList();
   }
 }

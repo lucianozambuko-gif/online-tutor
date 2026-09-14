@@ -35,13 +35,17 @@ export class PayoutsController {
 
   @Post('run')
   @Roles(Role.ADMIN)
-  run() {
-    return this.payoutsService.run();
+  run(@CurrentUser() user: JwtPayload) {
+    return this.payoutsService.run(user.sub);
   }
 
   @Patch(':id/paid')
   @Roles(Role.ADMIN)
-  markPaid(@Param('id') id: string, @Body() dto: MarkPayoutPaidDto) {
-    return this.payoutsService.markPaid(id, dto);
+  markPaid(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: MarkPayoutPaidDto,
+  ) {
+    return this.payoutsService.markPaid(user.sub, id, dto);
   }
 }

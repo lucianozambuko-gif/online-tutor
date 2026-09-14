@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 const REPORTER_SELECT = {
   id: true,
@@ -12,7 +13,10 @@ const REPORTER_SELECT = {
 
 @Injectable()
 export class IssuesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async create(reporterId: string, dto: CreateIssueDto) {
     if (dto.bookingId) {
@@ -57,16 +61,23 @@ export class IssuesService {
     });
   }
 
-  async update(id: string, dto: UpdateIssueDto) {
+  async update(adminId: string, id: string, dto: UpdateIssueDto) {
     const issue = await this.prisma.issueReport.findUnique({ where: { id } });
     if (!issue) {
       throw new NotFoundException('Issue report not found');
     }
 
-    return this.prisma.issueReport.update({
+    const result = await this.prisma.issueReport.update({
       where: { id },
       data: { status: dto.status, adminNotes: dto.adminNotes },
       include: { reporter: { select: REPORTER_SELECT } },
     });
+    await this.auditLog.record(
+      adminId,
+      `ISSUE_${dto.status}`,
+      'IssueReport',
+      id,
+    );
+    return result;
   }
 }

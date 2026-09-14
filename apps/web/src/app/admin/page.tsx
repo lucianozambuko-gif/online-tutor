@@ -14,6 +14,12 @@ import {
   updateIssueReport,
   listAdminSubscriptions,
   refundPayment,
+  listAdminPayments,
+  listAdminBookings,
+  listAdminReviews,
+  deleteAdminReview,
+  listAuditLog,
+  getAdminStats,
   ApiError,
   GRADE_LEVEL_LABELS,
   type AdminUser,
@@ -23,6 +29,11 @@ import {
   type IssueStatus,
   type AdminSubscription,
   type AdminPayment,
+  type AdminPaymentRow,
+  type Booking,
+  type AdminReview,
+  type AuditLogEntry,
+  type AdminStats,
 } from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -62,6 +73,26 @@ export default function AdminDashboard() {
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
   const [subscriptionsError, setSubscriptionsError] = useState<string | null>(null);
 
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  const [payments, setPayments] = useState<AdminPaymentRow[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
+
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [bookingsError, setBookingsError] = useState<string | null>(null);
+
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+
+  const [activity, setActivity] = useState<AuditLogEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [activityError, setActivityError] = useState<string | null>(null);
+
   function load() {
     listUsers()
       .then(setUsers)
@@ -85,6 +116,46 @@ export default function AdminDashboard() {
       .finally(() => setSubscriptionsLoading(false));
   }, []);
 
+  useEffect(() => {
+    getAdminStats()
+      .then(setStats)
+      .catch((err) => setStatsError(err instanceof ApiError ? err.message : "Failed to load stats"));
+  }, []);
+
+  function loadPayments() {
+    listAdminPayments()
+      .then(setPayments)
+      .catch((err) => setPaymentsError(err instanceof ApiError ? err.message : "Failed to load payments"))
+      .finally(() => setPaymentsLoading(false));
+  }
+
+  useEffect(loadPayments, []);
+
+  useEffect(() => {
+    listAdminBookings()
+      .then(setBookings)
+      .catch((err) => setBookingsError(err instanceof ApiError ? err.message : "Failed to load bookings"))
+      .finally(() => setBookingsLoading(false));
+  }, []);
+
+  function loadReviews() {
+    listAdminReviews()
+      .then(setReviews)
+      .catch((err) => setReviewsError(err instanceof ApiError ? err.message : "Failed to load reviews"))
+      .finally(() => setReviewsLoading(false));
+  }
+
+  useEffect(loadReviews, []);
+
+  function loadActivity() {
+    listAuditLog()
+      .then(setActivity)
+      .catch((err) => setActivityError(err instanceof ApiError ? err.message : "Failed to load activity log"))
+      .finally(() => setActivityLoading(false));
+  }
+
+  useEffect(loadActivity, []);
+
   function loadTutors() {
     listAdminTutors()
       .then(setTutors)
@@ -102,6 +173,7 @@ export default function AdminDashboard() {
       await setTutorVerification(tutor.id, status);
       setTutorsLoading(true);
       loadTutors();
+      loadActivity();
     } catch (err) {
       setTutorsError(err instanceof ApiError ? err.message : "Failed to update this tutor");
     } finally {
@@ -116,6 +188,7 @@ export default function AdminDashboard() {
       await setTutorTranscriptVerified(tutor.id, verified);
       setTutorsLoading(true);
       loadTutors();
+      loadActivity();
     } catch (err) {
       setTutorsError(err instanceof ApiError ? err.message : "Failed to update this tutor");
     } finally {
@@ -139,6 +212,7 @@ export default function AdminDashboard() {
       await updateIssueReport(issue.id, { status, adminNotes: issueNotes[issue.id] ?? issue.adminNotes ?? undefined });
       setIssuesLoading(true);
       loadIssues();
+      loadActivity();
     } catch (err) {
       setIssuesError(err instanceof ApiError ? err.message : "Failed to update this report");
     } finally {
@@ -165,10 +239,30 @@ export default function AdminDashboard() {
       setRefundForms((prev) => ({ ...prev, [payment.id]: { amount: "", reason: "" } }));
       setIssuesLoading(true);
       loadIssues();
+      setPaymentsLoading(true);
+      loadPayments();
+      loadActivity();
     } catch (err) {
       setRefundError(err instanceof ApiError ? err.message : "Failed to process refund");
     } finally {
       setRefundingPaymentId(null);
+    }
+  }
+
+  async function handleDeleteReview(review: AdminReview) {
+    if (!window.confirm(`Delete this ${review.rating}-star review by ${review.student.name} of ${review.tutor.name}?`)) {
+      return;
+    }
+    setDeletingReviewId(review.id);
+    setReviewsError(null);
+    try {
+      await deleteAdminReview(review.id);
+      setReviews((prev) => prev.filter((r) => r.id !== review.id));
+      loadActivity();
+    } catch (err) {
+      setReviewsError(err instanceof ApiError ? err.message : "Failed to delete review");
+    } finally {
+      setDeletingReviewId(null);
     }
   }
 
@@ -182,6 +276,7 @@ export default function AdminDashboard() {
       }
       setPayoutsLoading(true);
       loadPayouts();
+      loadActivity();
     } catch (err) {
       setPayoutError(err instanceof ApiError ? err.message : "Failed to run payout batch");
     } finally {
@@ -203,6 +298,7 @@ export default function AdminDashboard() {
       await markPayoutPaid(payout.id);
       setPayoutsLoading(true);
       loadPayouts();
+      loadActivity();
     } catch (err) {
       setPayoutError(err instanceof ApiError ? err.message : "Failed to update payout");
     } finally {
@@ -220,6 +316,7 @@ export default function AdminDashboard() {
       await deleteUser(u.id);
       setLoading(true);
       load();
+      loadActivity();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to delete user");
     } finally {
@@ -257,6 +354,38 @@ export default function AdminDashboard() {
               <p className="mt-1 text-xs uppercase tracking-wide text-ink-300">{label}</p>
             </Card>
           ))}
+        </div>
+      )}
+
+      {statsError && <ErrorText>{statsError}</ErrorText>}
+
+      {stats && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="text-center">
+            <p className="font-display text-2xl font-semibold text-ink-900">R{stats.revenue.net.toFixed(2)}</p>
+            <p className="mt-1 text-xs uppercase tracking-wide text-ink-300">Net revenue</p>
+            <p className="mt-1 text-[11px] text-ink-300">
+              R{stats.revenue.gross.toFixed(2)} gross · R{stats.revenue.refunded.toFixed(2)} refunded
+            </p>
+          </Card>
+          <Card className="text-center">
+            <p className="font-display text-2xl font-semibold text-ink-900">R{stats.revenue.platformFees.toFixed(2)}</p>
+            <p className="mt-1 text-xs uppercase tracking-wide text-ink-300">Platform fees earned</p>
+          </Card>
+          <Card className="text-center">
+            <p className="font-display text-2xl font-semibold text-ink-900">{stats.bookings.total}</p>
+            <p className="mt-1 text-xs uppercase tracking-wide text-ink-300">Bookings</p>
+            <p className="mt-1 text-[11px] text-ink-300">
+              {stats.bookings.COMPLETED} completed · {stats.bookings.CONFIRMED} confirmed · {stats.bookings.PENDING} pending
+            </p>
+          </Card>
+          <Card className="text-center">
+            <p className="font-display text-2xl font-semibold text-ink-900">{stats.subscriptions.totalActive}</p>
+            <p className="mt-1 text-xs uppercase tracking-wide text-ink-300">Active paid subscriptions</p>
+            <p className="mt-1 text-[11px] text-ink-300">
+              {stats.subscriptions.plus} Plus · {stats.subscriptions.pro} Pro
+            </p>
+          </Card>
         </div>
       )}
 
@@ -508,6 +637,189 @@ export default function AdminDashboard() {
         )}
       </Card>
 
+      <Card className="overflow-x-auto">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Payments</h2>
+          <p className="mt-1 text-sm text-ink-500">Every booking payment on the platform — money coming in via PayFast.</p>
+        </div>
+
+        {paymentsError && (
+          <div className="mt-4">
+            <ErrorText>{paymentsError}</ErrorText>
+          </div>
+        )}
+
+        {paymentsLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading payments...</p>
+        ) : payments.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No payments yet.</p>
+        ) : (
+          <table className="mt-4 w-full min-w-max text-left text-sm">
+            <thead>
+              <tr className="border-b border-ink-700/10 text-xs uppercase tracking-wide text-ink-300">
+                <th className="py-2 pr-4 font-medium">Booking</th>
+                <th className="py-2 pr-4 font-medium">Student</th>
+                <th className="py-2 pr-4 font-medium">Tutor</th>
+                <th className="py-2 pr-4 font-medium">Amount</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 pr-4 font-medium">Date</th>
+                <th className="py-2 pr-4 font-medium" />
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((p) => {
+                const form = refundForms[p.id] ?? { amount: "", reason: "" };
+                const canRefund = p.status === "PAID" || p.status === "PARTIALLY_REFUNDED";
+                return (
+                  <tr key={p.id} className="border-b border-ink-700/5 align-top last:border-0">
+                    <td className="py-3 pr-4 text-ink-900">{p.booking.subject}</td>
+                    <td className="py-3 pr-4 text-ink-500">{p.booking.student.name}</td>
+                    <td className="py-3 pr-4 text-ink-500">{p.booking.tutor.name}</td>
+                    <td className="py-3 pr-4 font-medium text-ink-900">R{p.amount}</td>
+                    <td className="py-3 pr-4">
+                      <StatusBadge status={p.status} />
+                      {p.refundedAmount && (
+                        <p className="mt-1 text-[11px] text-ink-300">Refunded R{p.refundedAmount}</p>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4 text-ink-500">{formatDate(p.createdAt)}</td>
+                    <td className="py-3 pr-4">
+                      {canRefund && (
+                        <div className="flex flex-col gap-1.5">
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder="Full amount"
+                            value={form.amount}
+                            onChange={(e) =>
+                              setRefundForms((prev) => ({ ...prev, [p.id]: { ...form, amount: e.target.value } }))
+                            }
+                            className="w-28 rounded-lg border border-ink-700/15 bg-white px-2 py-1 text-xs text-ink-900 outline-none focus:border-sky-400"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Reason"
+                            value={form.reason}
+                            onChange={(e) =>
+                              setRefundForms((prev) => ({ ...prev, [p.id]: { ...form, reason: e.target.value } }))
+                            }
+                            className="w-36 rounded-lg border border-ink-700/15 bg-white px-2 py-1 text-xs text-ink-900 outline-none focus:border-sky-400"
+                          />
+                          <button
+                            type="button"
+                            disabled={refundingPaymentId === p.id}
+                            onClick={() => handleRefund(p)}
+                            className={buttonClass("danger", "px-2.5 py-1 text-xs")}
+                          >
+                            {refundingPaymentId === p.id ? "Refunding..." : "Refund"}
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        {refundError && (
+          <div className="mt-3">
+            <ErrorText>{refundError}</ErrorText>
+          </div>
+        )}
+      </Card>
+
+      <Card className="overflow-x-auto">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Bookings</h2>
+          <p className="mt-1 text-sm text-ink-500">Every session booked on the platform, most recent first.</p>
+        </div>
+
+        {bookingsError && (
+          <div className="mt-4">
+            <ErrorText>{bookingsError}</ErrorText>
+          </div>
+        )}
+
+        {bookingsLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading bookings...</p>
+        ) : bookings.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No bookings yet.</p>
+        ) : (
+          <table className="mt-4 w-full min-w-max text-left text-sm">
+            <thead>
+              <tr className="border-b border-ink-700/10 text-xs uppercase tracking-wide text-ink-300">
+                <th className="py-2 pr-4 font-medium">Subject</th>
+                <th className="py-2 pr-4 font-medium">Student</th>
+                <th className="py-2 pr-4 font-medium">Tutor</th>
+                <th className="py-2 pr-4 font-medium">When</th>
+                <th className="py-2 pr-4 font-medium">Mode</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((b) => (
+                <tr key={b.id} className="border-b border-ink-700/5 last:border-0">
+                  <td className="py-3 pr-4 text-ink-900">{b.subject}</td>
+                  <td className="py-3 pr-4 text-ink-500">{b.student.name}</td>
+                  <td className="py-3 pr-4 text-ink-500">{b.tutor.name}</td>
+                  <td className="py-3 pr-4 text-ink-500">{new Date(b.scheduledAt).toLocaleString()}</td>
+                  <td className="py-3 pr-4 text-ink-500">{b.mode === "ONLINE" ? "Online" : "In person"}</td>
+                  <td className="py-3 pr-4">
+                    <StatusBadge status={b.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <Card>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Reviews</h2>
+          <p className="mt-1 text-sm text-ink-500">Student feedback on tutors — remove anything inappropriate.</p>
+        </div>
+
+        {reviewsError && (
+          <div className="mt-4">
+            <ErrorText>{reviewsError}</ErrorText>
+          </div>
+        )}
+
+        {reviewsLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading reviews...</p>
+        ) : reviews.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No reviews yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {reviews.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-ink-700/10 p-4">
+                <div>
+                  <p className="text-sm font-medium text-ink-900">
+                    {"★".repeat(r.rating)}
+                    {"☆".repeat(5 - r.rating)} · {r.tutor.name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    by {r.student.name} · {r.booking.subject} · {formatDate(r.createdAt)}
+                  </p>
+                  {r.comment && <p className="mt-1.5 text-sm text-ink-700">{r.comment}</p>}
+                </div>
+                <button
+                  type="button"
+                  disabled={deletingReviewId === r.id}
+                  onClick={() => handleDeleteReview(r)}
+                  className={buttonClass("danger", "px-3 py-1.5 text-xs")}
+                >
+                  {deletingReviewId === r.id ? "Deleting..." : "Delete"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       <Card>
         <div>
           <h2 className="font-display text-lg font-semibold text-ink-900">Subscriptions</h2>
@@ -674,6 +986,48 @@ export default function AdminDashboard() {
                   </tr>
                 );
               })}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <Card className="overflow-x-auto">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Activity log</h2>
+          <p className="mt-1 text-sm text-ink-500">Recent admin actions — refunds, payouts, verifications, deletions.</p>
+        </div>
+
+        {activityError && (
+          <div className="mt-4">
+            <ErrorText>{activityError}</ErrorText>
+          </div>
+        )}
+
+        {activityLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading activity...</p>
+        ) : activity.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No admin actions recorded yet.</p>
+        ) : (
+          <table className="mt-4 w-full min-w-max text-left text-sm">
+            <thead>
+              <tr className="border-b border-ink-700/10 text-xs uppercase tracking-wide text-ink-300">
+                <th className="py-2 pr-4 font-medium">Action</th>
+                <th className="py-2 pr-4 font-medium">Target</th>
+                <th className="py-2 pr-4 font-medium">Admin</th>
+                <th className="py-2 pr-4 font-medium">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activity.map((a) => (
+                <tr key={a.id} className="border-b border-ink-700/5 last:border-0">
+                  <td className="py-3 pr-4 font-medium text-ink-900">{a.action.replace(/_/g, " ")}</td>
+                  <td className="py-3 pr-4 text-ink-500">
+                    {a.targetType} · {a.targetId.slice(0, 8)}
+                  </td>
+                  <td className="py-3 pr-4 text-ink-500">{a.admin.name}</td>
+                  <td className="py-3 pr-4 text-ink-500">{new Date(a.timestamp).toLocaleString()}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         )}

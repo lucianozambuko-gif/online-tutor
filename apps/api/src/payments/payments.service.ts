@@ -11,12 +11,37 @@ import { PaymentStatus } from '../prisma/prisma-enums';
 import { generatePayfastSignature, getPayfastBaseUrl } from './payfast.util';
 import { callRefundApi } from './payfast-management-api.util';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
+
+const ADMIN_PAYMENT_INCLUDE = {
+  booking: {
+    select: {
+      id: true,
+      subject: true,
+      scheduledAt: true,
+      student: { select: { id: true, name: true, email: true } },
+      tutor: { select: { id: true, name: true, email: true } },
+    },
+  },
+} as const;
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
+
+  // Admin-only: every payment on the platform, newest first — the only place
+  // an admin can see money coming IN (Payouts only cover money going out).
+  adminList() {
+    return this.prisma.payment.findMany({
+      include: ADMIN_PAYMENT_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   async initiate(bookingId: string, studentId: string) {
     const booking = await this.prisma.booking.findUnique({
@@ -118,7 +143,7 @@ export class PaymentsService {
   // pf_payment_id (captured from the ITN above) — NOTE this cannot be tested
   // in PayFast's sandbox, which rejects refund calls outright; it needs to be
   // exercised against live credentials before being trusted in production.
-  async refund(paymentId: string, dto: RefundPaymentDto) {
+  async refund(adminId: string, paymentId: string, dto: RefundPaymentDto) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
     });
@@ -182,7 +207,7 @@ export class PaymentsService {
       Math.round((alreadyRefunded + refundAmountRand) * 100) / 100;
     const isFullyRefunded = newRefundedAmount >= totalAmount;
 
-    return this.prisma.payment.update({
+    const result = await this.prisma.payment.update({
       where: { id: paymentId },
       data: {
         status: isFullyRefunded
@@ -193,5 +218,12 @@ export class PaymentsService {
         refundedAt: new Date(),
       },
     });
+    await this.auditLog.record(
+      adminId,
+      isFullyRefunded ? 'PAYMENT_REFUNDED' : 'PAYMENT_PARTIALLY_REFUNDED',
+      'Payment',
+      paymentId,
+    );
+    return result;
   }
 }

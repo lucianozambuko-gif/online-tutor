@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,8 +33,22 @@ export class ReviewsController {
     return this.reviewsService.listMine(user.sub);
   }
 
+  // Declared before 'tutor/:tutorId' — otherwise Nest would match "admin/list"
+  // with tutorId="admin" and this route would never be reached.
+  @Get('admin/list')
+  @Roles(Role.ADMIN)
+  adminList() {
+    return this.reviewsService.adminList();
+  }
+
   @Get('tutor/:tutorId')
   listForTutor(@Param('tutorId') tutorId: string) {
     return this.reviewsService.listForTutor(tutorId);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  adminDelete(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.reviewsService.adminDelete(user.sub, id);
   }
 }

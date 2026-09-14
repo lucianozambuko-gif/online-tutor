@@ -114,6 +114,15 @@ export class BookingsService {
     });
   }
 
+  // Admin-only: every booking on the platform, for oversight/support.
+  adminList() {
+    return this.prisma.booking.findMany({
+      include: BOOKING_INCLUDE,
+      orderBy: { scheduledAt: 'desc' },
+      take: 200,
+    });
+  }
+
   async findOne(id: string, userId: string, role: Role) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },

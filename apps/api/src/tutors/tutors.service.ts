@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Role, UserStatus, VerificationStatus } from '../prisma/prisma-enums';
 import { UpdateTutorProfileDto } from './dto/update-tutor-profile.dto';
 import { UpdateVerificationDto } from './dto/update-verification.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 const TUTOR_LIST_SELECT = {
   id: true,
@@ -25,7 +26,10 @@ const TUTOR_LIST_SELECT = {
 
 @Injectable()
 export class TutorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   // Public listing/lookup — only shows tutors an admin has approved, so an
   // unvetted account can't be found or booked just because it registered.
@@ -106,7 +110,11 @@ export class TutorsService {
     });
   }
 
-  async setVerification(tutorId: string, dto: UpdateVerificationDto) {
+  async setVerification(
+    adminId: string,
+    tutorId: string,
+    dto: UpdateVerificationDto,
+  ) {
     const tutor = await this.prisma.user.findFirst({
       where: { id: tutorId, role: Role.TUTOR },
       include: { tutorProfile: true },
@@ -115,10 +123,17 @@ export class TutorsService {
       throw new NotFoundException('Tutor not found');
     }
 
-    return this.prisma.tutorProfile.update({
+    const result = await this.prisma.tutorProfile.update({
       where: { userId: tutorId },
       data: { verificationStatus: dto.status },
     });
+    await this.auditLog.record(
+      adminId,
+      `TUTOR_VERIFICATION_${dto.status}`,
+      'TutorProfile',
+      tutorId,
+    );
+    return result;
   }
 
   async uploadTranscript(userId: string, file: Express.Multer.File) {
@@ -141,7 +156,11 @@ export class TutorsService {
     });
   }
 
-  async setTranscriptVerified(tutorId: string, verified: boolean) {
+  async setTranscriptVerified(
+    adminId: string,
+    tutorId: string,
+    verified: boolean,
+  ) {
     const tutor = await this.prisma.user.findFirst({
       where: { id: tutorId, role: Role.TUTOR },
       include: { tutorProfile: true },
@@ -150,9 +169,16 @@ export class TutorsService {
       throw new NotFoundException('Tutor not found');
     }
 
-    return this.prisma.tutorProfile.update({
+    const result = await this.prisma.tutorProfile.update({
       where: { userId: tutorId },
       data: { transcriptVerified: verified },
     });
+    await this.auditLog.record(
+      adminId,
+      verified ? 'TRANSCRIPT_VERIFIED' : 'TRANSCRIPT_UNVERIFIED',
+      'TutorProfile',
+      tutorId,
+    );
+    return result;
   }
 }

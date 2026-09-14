@@ -46,7 +46,11 @@ export class IssuesController {
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateIssueDto) {
-    return this.issuesService.update(id, dto);
+  update(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateIssueDto,
+  ) {
+    return this.issuesService.update(user.sub, id, dto);
   }
 }

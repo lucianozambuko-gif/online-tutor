@@ -595,6 +595,68 @@ export function refundPayment(paymentId: string, data: { amount?: number; reason
   return apiFetch(`/payments/${paymentId}/refund`, { method: "POST", body: JSON.stringify(data) });
 }
 
+export interface AdminPaymentRow extends AdminPayment {
+  method: string;
+  createdAt: string;
+  booking: {
+    id: string;
+    subject: string;
+    scheduledAt: string;
+    student: { id: string; name: string; email: string };
+    tutor: { id: string; name: string; email: string };
+  };
+}
+
+export function listAdminPayments(): Promise<AdminPaymentRow[]> {
+  return apiFetch("/payments");
+}
+
+export function listAdminBookings(): Promise<Booking[]> {
+  return apiFetch("/bookings/admin/list");
+}
+
+export interface AdminReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  student: { id: string; name: string };
+  tutor: { id: string; name: string };
+  booking: { id: string; subject: string };
+}
+
+export function listAdminReviews(): Promise<AdminReview[]> {
+  return apiFetch("/reviews/admin/list");
+}
+
+export function deleteAdminReview(id: string): Promise<{ deleted: boolean }> {
+  return apiFetch(`/reviews/${id}`, { method: "DELETE" });
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  timestamp: string;
+  admin: { id: string; name: string };
+}
+
+export function listAuditLog(): Promise<AuditLogEntry[]> {
+  return apiFetch("/audit-log");
+}
+
+export interface AdminStats {
+  revenue: { gross: number; refunded: number; net: number; platformFees: number };
+  bookings: Record<BookingStatus, number> & { total: number };
+  subscriptions: { plus: number; pro: number; totalActive: number };
+  payouts: { pendingTotal: number; pendingCount: number };
+}
+
+export function getAdminStats(): Promise<AdminStats> {
+  return apiFetch("/dashboard/admin");
+}
+
 export function createIssueReport(data: {
   category: IssueCategory;
   subject: string;

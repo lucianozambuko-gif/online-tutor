@@ -64,6 +64,6 @@ export class UsersController {
     if (currentUser.sub === id) {
       throw new BadRequestException('You cannot delete your own account');
     }
-    return this.usersService.softDelete(id);
+    return this.usersService.adminSoftDelete(currentUser.sub, id);
   }
 }

@@ -11,6 +11,7 @@ import {
   PayoutStatus,
 } from '../prisma/prisma-enums';
 import { MarkPayoutPaidDto } from './dto/mark-payout-paid.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 // Generated at payout-creation time (not when marked paid) so an admin has
 // something to actually use as the reference on the real-world EFT, rather
@@ -48,7 +49,10 @@ function withTotalMinutes<
 
 @Injectable()
 export class PayoutsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async mySummary(tutorId: string) {
     const [pendingPayments, payoutRows] = await Promise.all([
@@ -108,7 +112,7 @@ export class PayoutsService {
   // this platform's bookings service always assumed would exist eventually —
   // run manually by an admin rather than on a cron, matching the architecture
   // doc's manual/batched EFT payout design.
-  async run() {
+  async run(adminId: string) {
     const eligiblePayments = await this.prisma.payment.findMany({
       where: {
         status: PaymentStatus.PAID,
@@ -162,13 +166,24 @@ export class PayoutsService {
       }),
     );
 
+    await Promise.all(
+      created.map((payout) =>
+        this.auditLog.record(
+          adminId,
+          'PAYOUT_BATCH_CREATED',
+          'Payout',
+          payout.id,
+        ),
+      ),
+    );
+
     return { created: created.map(withTotalMinutes) };
   }
 
   // dto.reference is an optional override — every payout already got an
   // auto-generated reference when it was created, so leaving it out here
   // (Prisma skips undefined fields on update) just keeps that one.
-  async markPaid(id: string, dto: MarkPayoutPaidDto) {
+  async markPaid(adminId: string, id: string, dto: MarkPayoutPaidDto) {
     const payout = await this.prisma.payout.findUnique({ where: { id } });
     if (!payout) {
       throw new NotFoundException('Payout not found');
@@ -177,7 +192,7 @@ export class PayoutsService {
       throw new ConflictException('Payout is already marked as paid');
     }
 
-    return this.prisma.payout.update({
+    const result = await this.prisma.payout.update({
       where: { id },
       data: {
         status: PayoutStatus.PAID,
@@ -186,5 +201,7 @@ export class PayoutsService {
       },
       include: { tutor: { select: TUTOR_SELECT } },
     });
+    await this.auditLog.record(adminId, 'PAYOUT_MARKED_PAID', 'Payout', id);
+    return result;
   }
 }
