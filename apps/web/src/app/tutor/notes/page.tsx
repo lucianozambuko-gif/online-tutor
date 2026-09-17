@@ -44,28 +44,19 @@ export default function TutorNotesPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {notes.map((note) => {
-            const content = (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-medium text-ink-900">{note.topic}</p>
-                  <span className="text-xs text-ink-300">{timeAgo(note.createdAt)}</span>
-                </div>
-                <p className="mt-1 text-sm text-ink-500">{note.student?.name ?? "General note"}</p>
-              </>
-            );
-            const className =
-              "block rounded-2xl border border-ink-700/10 bg-white p-5 shadow-sm transition hover:border-sky-400/50 hover:shadow-md";
-            return note.student ? (
-              <Link key={note.id} href={`/tutor/students/${note.student.id}`} className={className}>
-                {content}
-              </Link>
-            ) : (
-              <div key={note.id} className={className}>
-                {content}
+          {notes.map((note) => (
+            <Link
+              key={note.id}
+              href={`/tutor/notes/${note.id}`}
+              className="block rounded-2xl border border-ink-700/10 bg-white p-5 shadow-sm transition hover:border-sky-400/50 hover:shadow-md"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium text-ink-900">{note.topic}</p>
+                <span className="text-xs text-ink-300">{timeAgo(note.createdAt)}</span>
               </div>
-            );
-          })}
+              <p className="mt-1 text-sm text-ink-500">{note.student?.name ?? "General note"}</p>
+            </Link>
+          ))}
         </div>
       )}
     </div>
