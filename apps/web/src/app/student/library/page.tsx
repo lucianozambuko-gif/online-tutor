@@ -95,8 +95,38 @@ function LibraryContent() {
       <Link href="/student" className="text-sm text-sky-700 hover:text-sky-800">
         &larr; Back to dashboard
       </Link>
-      <h1 className="mt-4 font-display text-2xl font-semibold text-ink-900">Library</h1>
-      <p className="mt-1 text-sm text-ink-500">All your notes, flashcards, and quizzes in one place.</p>
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Library</h1>
+          <p className="mt-1 text-sm text-ink-500">All your notes, flashcards, and quizzes in one place.</p>
+        </div>
+        {tab === "all" ? (
+          <div className="flex flex-wrap gap-2">
+            <Link href="/student/notes/generate" className={buttonClass("outline")}>
+              New note
+            </Link>
+            <Link href="/student/flashcards/generate" className={buttonClass("outline")}>
+              New flashcards
+            </Link>
+            <Link href="/student/quizzes/generate" className={buttonClass("primary")}>
+              New quiz
+            </Link>
+          </div>
+        ) : (
+          <Link
+            href={
+              tab === "notes"
+                ? "/student/notes/generate"
+                : tab === "flashcards"
+                  ? "/student/flashcards/generate"
+                  : "/student/quizzes/generate"
+            }
+            className={buttonClass("primary")}
+          >
+            {tab === "notes" ? "New note" : tab === "flashcards" ? "New flashcards" : "New quiz"}
+          </Link>
+        )}
+      </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {(["all", "notes", "flashcards", "quizzes"] as Tab[]).map((t) => (
