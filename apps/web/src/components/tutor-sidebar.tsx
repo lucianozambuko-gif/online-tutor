@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { BrandMark } from "@/components/brand-mark";
 
 function DashboardIcon() {
   return (
@@ -157,7 +158,7 @@ export function TutorSidebar({ open = false, onClose }: { open?: boolean; onClos
       <div>
         <div className="flex items-center justify-between pb-7 pl-2.5">
           <Link href="/tutor" className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+            <BrandMark />
             <span className="font-display text-lg font-semibold tracking-tight text-ink-900">Lumen</span>
           </Link>
           <button

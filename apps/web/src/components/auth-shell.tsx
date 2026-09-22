@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BrandMark } from "@/components/brand-mark";
 
 export function AuthShell({
   title,
@@ -28,7 +29,7 @@ export function AuthShell({
           href="/"
           className="mb-8 flex items-center justify-center gap-2 font-display text-lg font-semibold text-ink-900"
         >
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+          <BrandMark />
           Lumen
         </Link>
 

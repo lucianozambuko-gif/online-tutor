@@ -1,6 +1,7 @@
 "use client";
 
 import { cloneElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
+import { BrandMark } from "@/components/brand-mark";
 
 function MenuIcon() {
   return (
@@ -45,7 +46,7 @@ export function PortalShell({ sidebar, children }: { sidebar: ReactNode; childre
             <MenuIcon />
           </button>
           <span className="flex items-center gap-2 font-display text-base font-semibold tracking-tight text-ink-900">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+            <BrandMark />
             Lumen
           </span>
         </div>

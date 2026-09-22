@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Bubblewrap TWA project — a separate, non-workspace Node project
+    // (see android/.gitignore) that also contains a full extracted JDK
+    // source tree under android/tools/, not something ESLint should ever
+    // walk.
+    "android/**",
   ]),
 ]);
 

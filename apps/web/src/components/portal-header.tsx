@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { buttonClass } from "@/components/ui";
+import { BrandMark } from "@/components/brand-mark";
 
 export function PortalHeader({ portalRoot }: { portalRoot: string }) {
   const { user, loading, logout } = useAuth();
@@ -14,7 +15,7 @@ export function PortalHeader({ portalRoot }: { portalRoot: string }) {
           href={portalRoot}
           className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-ink-900"
         >
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+          <BrandMark />
           Lumen
         </Link>
         {!loading && user && (

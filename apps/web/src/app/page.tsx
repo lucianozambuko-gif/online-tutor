@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/reveal";
+import { BrandMark } from "@/components/brand-mark";
 
 const FEATURES = [
   {
@@ -85,7 +86,7 @@ function Nav() {
     <header className="sticky top-0 z-50 border-b border-ink-700/5 bg-cream/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-ink-900">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+          <BrandMark />
           Lumen
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-medium text-ink-500 md:flex">
@@ -333,10 +334,13 @@ function Footer() {
     <footer className="border-t border-ink-700/10 bg-cream-soft">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-ink-300 sm:flex-row">
         <div className="flex items-center gap-2 font-display font-semibold text-ink-700">
-          <span className="inline-block h-2 w-2 rounded-full bg-gradient-to-br from-gold-400 to-gold-600" />
+          <BrandMark className="h-5 w-5" />
           Lumen
         </div>
-        <p>&copy; {new Date().getFullYear()} Lumen Tutoring. All rights reserved.</p>
+        <p>
+          &copy; {new Date().getFullYear()} Lumen Tutoring. All rights reserved. Built by{" "}
+          <span className="font-medium text-ink-500">Cloud UKO</span>.
+        </p>
       </div>
     </footer>
   );
