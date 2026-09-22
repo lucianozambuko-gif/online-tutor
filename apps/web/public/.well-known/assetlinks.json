@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "za.co.lumen.app",
+      "sha256_cert_fingerprints": [
+        "C2:D2:52:F7:36:95:9E:E1:DB:95:9C:7F:D5:83:64:84:37:F7:C7:52:C5:04:52:21:2D:32:66:0E:60:8D:D1:DA"
+      ]
+    }
+  }
+]
