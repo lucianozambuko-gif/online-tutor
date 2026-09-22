@@ -96,6 +96,13 @@ html {
      from landing underneath the sticky portal header. */
   scroll-padding-top: 5rem;
   color-scheme: light;
+  /* Dashboards render a one-line "Loading..." placeholder that gets replaced
+     by a much taller card once its data arrives (which can take several
+     seconds on a cold-started DB connection). Without this, the browser's
+     scroll-anchoring "helpfully" scrolls the page down to compensate for
+     that height jump, yanking users away from the top of the page they
+     just landed on. */
+  overflow-anchor: none;
 }
 
 html.dark {

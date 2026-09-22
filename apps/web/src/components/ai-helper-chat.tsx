@@ -64,7 +64,7 @@ export function AiHelperChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionSummary | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,8 +83,13 @@ export function AiHelperChat() {
 
   useEffect(loadSubscription, []);
 
+  // Scroll only the chat's own message list, not the whole dashboard —
+  // `scrollIntoView` walks every scrollable ancestor including the page
+  // itself, which used to yank the entire dashboard down to this card on
+  // every load.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   useEffect(() => {
@@ -255,7 +260,7 @@ export function AiHelperChat() {
         </p>
       )}
 
-      <div className="mt-5 flex h-96 flex-col overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-4">
+      <div ref={scrollContainerRef} className="mt-5 flex h-96 flex-col overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-4">
         {loading ? (
           <p className="text-sm text-ink-500">Loading...</p>
         ) : messages.length === 0 ? (
@@ -306,7 +311,6 @@ export function AiHelperChat() {
             )}
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
       {error && (
@@ -380,7 +384,7 @@ export function AiHelperChat() {
           <PaperclipIcon />
         </button>
         <input
-          className={inputClass}
+          className={`${inputClass} min-w-0`}
           placeholder="Ask a question..."
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -389,7 +393,7 @@ export function AiHelperChat() {
         <button
           type="submit"
           disabled={sending || (!draft.trim() && images.length === 0 && documents.length === 0)}
-          className={buttonClass("primary")}
+          className={buttonClass("primary", "shrink-0")}
         >
           Send
         </button>

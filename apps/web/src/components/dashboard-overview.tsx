@@ -119,8 +119,8 @@ export function DashboardOverview({ studentName }: { studentName: string }) {
           <h1 className="font-display text-[26px] font-semibold tracking-tight text-ink-900">Hello, {studentName}</h1>
           <p className="mt-1 text-sm text-ink-500">Here&apos;s what&apos;s happening with your studies today.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:flex-nowrap">
+          <div className="relative min-w-0 flex-1 sm:flex-none">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
               <SearchIcon />
             </span>
@@ -129,12 +129,12 @@ export function DashboardOverview({ studentName }: { studentName: string }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search notes, flashcards, quizzes..."
-              className="w-[280px] rounded-lg border border-ink-700/15 bg-white py-2.5 pl-9 pr-3.5 text-[13px] text-ink-900 shadow-sm outline-none transition placeholder:text-ink-300 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30"
+              className="w-full rounded-lg border border-ink-700/15 bg-white py-2.5 pl-9 pr-3.5 text-[13px] text-ink-900 shadow-sm outline-none transition placeholder:text-ink-300 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30 sm:w-70"
             />
           </div>
           <a
             href="#ai-helper"
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-400 to-gold-600 px-5 py-2.5 text-[13px] font-semibold text-ink-900 shadow-sm transition hover:shadow-md hover:shadow-gold-500/20"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-gold-400 to-gold-600 px-5 py-2.5 text-[13px] font-semibold text-ink-900 shadow-sm transition hover:shadow-md hover:shadow-gold-500/20"
           >
             <SparkleIcon />
             Ask Lumen AI
