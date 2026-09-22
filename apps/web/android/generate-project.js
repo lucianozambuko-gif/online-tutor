@@ -54,8 +54,16 @@ function randomPassword(len = 24) {
   const jdkHelper = new JdkHelper(process, config);
   const keyTool = new KeyTool(jdkHelper);
 
-  const keystorePassword = randomPassword();
-  const keyPassword = randomPassword();
+  // Re-running this script (e.g. after changing the app icon) must reuse the
+  // existing keystore's password rather than generating a fresh one — the
+  // keystore itself is left untouched (createSigningKey no-ops when the file
+  // already exists), but a new random password would no longer open it.
+  const credentialsPath = path.join(TARGET_DIR, "signing-key-credentials.DO-NOT-COMMIT.json");
+  const existingCredentials = fs.existsSync(credentialsPath)
+    ? JSON.parse(fs.readFileSync(credentialsPath, "utf8"))
+    : null;
+  const keystorePassword = existingCredentials?.keystorePassword ?? randomPassword();
+  const keyPassword = existingCredentials?.keyPassword ?? keystorePassword;
 
   await keyTool.createSigningKey({
     fullName: "Lumen Tutoring",

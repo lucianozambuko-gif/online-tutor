@@ -13,8 +13,8 @@
   "backgroundColor": "#FAF6EC",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://online-tutor-web.vercel.app/icon-512",
-  "maskableIconUrl": "https://online-tutor-web.vercel.app/icon-512-maskable",
+  "iconUrl": "https://online-tutor-web.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://online-tutor-web.vercel.app/icon-512-maskable.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "C:\\Users\\User\\Documents\\cloud uko\\client_profile\\school project\\online-tutor\\apps\\web\\android\\android.keystore",
