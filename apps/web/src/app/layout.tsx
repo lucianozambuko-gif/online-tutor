@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { AuthProvider } from "@/lib/auth-context";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,6 +25,20 @@ export const metadata: Metadata = {
   title: "Lumen — Online Tutoring",
   description:
     "Book verified tutors, learn online or in person, and pay securely — a modern tutoring platform for South African students.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Lumen",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#faf6ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c1420" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -39,6 +54,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col bg-cream text-ink-700" suppressHydrationWarning>
+        <ServiceWorkerRegister />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
