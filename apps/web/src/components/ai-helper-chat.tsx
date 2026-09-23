@@ -6,6 +6,7 @@ import { listAiMessages, sendAiMessage, getMySubscription, ApiError, type AiMess
 import { Card, inputClass, buttonClass, ErrorText } from "@/components/ui";
 import { MarkdownContent } from "@/components/markdown-content";
 import { formatResetIn } from "@/lib/format";
+import { useAuth } from "@/lib/auth-context";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_DOCUMENT_TYPES =
@@ -54,7 +55,17 @@ function XIcon() {
   );
 }
 
+function SparkleIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.4 4.3L18 8.7l-4.6 1.4L12 14.4l-1.4-4.3L6 8.7l4.6-1.4z" />
+    </svg>
+  );
+}
+
 export function AiHelperChat() {
+  const { user } = useAuth();
+  const firstName = user?.name?.split(" ")[0];
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
@@ -234,37 +245,25 @@ export function AiHelperChat() {
 
   return (
     <Card>
-      <h2 className="font-display text-lg font-semibold text-ink-900">Study helper</h2>
-      <p className="mt-1 text-sm text-ink-500">
-        Ask about anything you&apos;re studying, attach a photo of a problem or a PDF/Word document, or ask it to
-        format your references or review your own writing for originality issues — it&apos;ll help you work
-        through things, not just hand you the answer.
-      </p>
-      {subscription && (
-        <p className="mt-2 text-xs text-ink-300">
-          {subscription.aiMessagesLimit !== null ? (
-            <>
-              {subscription.aiMessagesUsed} / {subscription.aiMessagesLimit} messages
-              {subscription.plan === "FREE"
-                ? subscription.aiMessagesResetAt
-                  ? ` · resets in ${formatResetIn(subscription.aiMessagesResetAt)}`
-                  : ""
-                : " this month"}{" "}
-              on the {subscription.plan} plan ·{" "}
-            </>
-          ) : null}
-          Up to {subscription.maxFilesPerMessage} file{subscription.maxFilesPerMessage === 1 ? "" : "s"} per message ·{" "}
-          <Link href="/student/subscription" className="font-semibold text-sky-700 hover:text-sky-600">
-            Upgrade
-          </Link>
-        </p>
-      )}
-
-      <div ref={scrollContainerRef} className="mt-5 flex h-96 flex-col overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-4">
+      <div
+        ref={scrollContainerRef}
+        className="flex h-96 flex-col overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-4"
+      >
         {loading ? (
           <p className="text-sm text-ink-500">Loading...</p>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-ink-300">Ask your first question below to get started.</p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+            <span className="text-gold-500">
+              <SparkleIcon />
+            </span>
+            <p className="font-display text-xl font-semibold text-ink-900">
+              What are you studying{firstName ? `, ${firstName}` : ""}?
+            </p>
+            <p className="max-w-xs text-sm text-ink-500">
+              Ask a question, attach a photo of a problem, or drop in a document — I&apos;ll help you work
+              through it.
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col gap-3">
             {messages.map((m) => (
@@ -353,7 +352,27 @@ export function AiHelperChat() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-2 sm:gap-3">
+      {subscription && (
+        <p className="mt-3 text-xs text-ink-300">
+          {subscription.aiMessagesLimit !== null ? (
+            <>
+              {subscription.aiMessagesUsed} / {subscription.aiMessagesLimit} messages
+              {subscription.plan === "FREE"
+                ? subscription.aiMessagesResetAt
+                  ? ` · resets in ${formatResetIn(subscription.aiMessagesResetAt)}`
+                  : ""
+                : " this month"}{" "}
+              on the {subscription.plan} plan ·{" "}
+            </>
+          ) : null}
+          Up to {subscription.maxFilesPerMessage} file{subscription.maxFilesPerMessage === 1 ? "" : "s"} per message ·{" "}
+          <Link href="/student/subscription" className="font-semibold text-sky-700 hover:text-sky-600">
+            Upgrade
+          </Link>
+        </p>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-3 flex gap-2 sm:gap-3">
         <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handlePickImages} className="hidden" />
         <input
           ref={documentInputRef}
