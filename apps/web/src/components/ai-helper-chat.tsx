@@ -372,7 +372,7 @@ export function AiHelperChat() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-3 flex gap-2 sm:gap-3">
+      <form onSubmit={handleSubmit} className="mt-3 flex flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
         <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handlePickImages} className="hidden" />
         <input
           ref={documentInputRef}
@@ -382,13 +382,23 @@ export function AiHelperChat() {
           onChange={handlePickDocuments}
           className="hidden"
         />
+        {/* Full-width on its own row on mobile (so the draft is actually
+            visible while typing) via order-1 + w-full forcing everything
+            else to wrap below it; back to inline with the buttons at sm. */}
+        <input
+          className={`${inputClass} order-1 w-full min-w-0 sm:order-2 sm:w-auto sm:flex-1`}
+          placeholder="Ask a question..."
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          disabled={sending}
+        />
         <button
           type="button"
           onClick={handleAttachImageClick}
           disabled={sending}
           aria-label="Attach a photo"
           title="Attach a photo"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-700/15 bg-white text-ink-500 transition hover:border-sky-400/50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="order-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-700/15 bg-white text-ink-500 transition hover:border-sky-400/50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50 sm:order-1"
         >
           <PlusIcon />
         </button>
@@ -398,21 +408,14 @@ export function AiHelperChat() {
           disabled={sending}
           aria-label="Attach a document"
           title="Attach a PDF or Word document"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-700/15 bg-white text-ink-500 transition hover:border-sky-400/50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="order-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink-700/15 bg-white text-ink-500 transition hover:border-sky-400/50 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50 sm:order-1"
         >
           <PaperclipIcon />
         </button>
-        <input
-          className={`${inputClass} min-w-0`}
-          placeholder="Ask a question..."
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          disabled={sending}
-        />
         <button
           type="submit"
           disabled={sending || (!draft.trim() && images.length === 0 && documents.length === 0)}
-          className={buttonClass("primary", "shrink-0")}
+          className={buttonClass("primary", "order-4 ml-auto shrink-0 sm:order-3 sm:ml-0")}
         >
           Send
         </button>
