@@ -163,6 +163,12 @@ const NAV_ITEMS: NavItem[] = [
     match: (p) => p.startsWith("/student/library"),
   },
   {
+    label: "AI Helper",
+    href: "/student/ai-helper",
+    icon: <AiHelperIcon />,
+    match: (p) => p.startsWith("/student/ai-helper"),
+  },
+  {
     label: "Subscription",
     href: "/student/subscription",
     icon: <SubscriptionIcon />,
@@ -238,14 +244,6 @@ export function StudentSidebar({ open = false, onClose }: { open?: boolean; onCl
           >
             <MyBookingsIcon />
             My bookings
-          </Link>
-          <Link
-            href="/student#ai-helper"
-            onClick={onClose}
-            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gold-600 transition hover:bg-gold-300/10"
-          >
-            <AiHelperIcon />
-            AI Helper
           </Link>
           <Link
             href="/student/report-issue"

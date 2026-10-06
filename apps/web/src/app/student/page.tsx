@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { BookTutorForm } from "@/components/book-tutor-form";
 import { BookingsList } from "@/components/bookings-list";
-import { AiHelperChat } from "@/components/ai-helper-chat";
 import { DashboardOverview } from "@/components/dashboard-overview";
 import { useAuth } from "@/lib/auth-context";
 
@@ -28,9 +27,6 @@ export default function StudentDashboard() {
     <div className="space-y-10">
       <DashboardOverview studentName={user.name.split(" ")[0]} />
 
-      <div id="ai-helper">
-        <AiHelperChat />
-      </div>
       <div id="book-a-tutor">
         <BookTutorForm onBooked={() => setRefreshKey((k) => k + 1)} />
       </div>

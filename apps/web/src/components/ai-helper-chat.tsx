@@ -247,7 +247,7 @@ export function AiHelperChat() {
     <Card>
       <div
         ref={scrollContainerRef}
-        className="flex h-96 flex-col overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-4"
+        className="flex h-128 flex-col overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-4 sm:h-144"
       >
         {loading ? (
           <p className="text-sm text-ink-500">Loading...</p>

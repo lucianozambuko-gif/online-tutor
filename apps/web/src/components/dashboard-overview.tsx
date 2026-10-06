@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getStudentDashboard, ApiError, type DashboardSummary } from "@/lib/api";
 import { ErrorText } from "@/components/ui";
@@ -132,13 +133,13 @@ export function DashboardOverview({ studentName }: { studentName: string }) {
               className="w-full rounded-lg border border-ink-700/15 bg-white py-2.5 pl-9 pr-3.5 text-[13px] text-ink-900 shadow-sm outline-none transition placeholder:text-ink-300 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30 sm:w-70"
             />
           </div>
-          <a
-            href="#ai-helper"
+          <Link
+            href="/student/ai-helper"
             className="inline-flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-gold-400 to-gold-600 px-5 py-2.5 text-[13px] font-semibold text-ink-900 shadow-sm transition hover:shadow-md hover:shadow-gold-500/20"
           >
             <SparkleIcon />
             Ask Lumen AI
-          </a>
+          </Link>
         </div>
       </div>
 
