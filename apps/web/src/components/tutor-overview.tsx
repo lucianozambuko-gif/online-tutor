@@ -5,13 +5,11 @@ import Link from "next/link";
 import {
   getTutorDashboard,
   getOwnTutorProfile,
-  acceptBooking,
-  declineBooking,
   ApiError,
   type TutorDashboardSummary,
   type VerificationStatus,
 } from "@/lib/api";
-import { ErrorText, buttonClass } from "@/components/ui";
+import { ErrorText } from "@/components/ui";
 
 function RequestsIcon({ color }: { color: string }) {
   return (
@@ -49,21 +47,10 @@ function EarningsIcon({ color }: { color: string }) {
   );
 }
 
-function formatWhen(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 export function TutorOverview({ tutorName }: { tutorName: string }) {
   const [data, setData] = useState<TutorDashboardSummary | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actingOn, setActingOn] = useState<string | null>(null);
 
   function load() {
     getTutorDashboard()
@@ -77,19 +64,6 @@ export function TutorOverview({ tutorName }: { tutorName: string }) {
       .then((profile) => setVerificationStatus(profile.verificationStatus))
       .catch(() => {});
   }, []);
-
-  async function respond(id: string, action: (id: string) => Promise<unknown>) {
-    setActingOn(id);
-    setError(null);
-    try {
-      await action(id);
-      load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong");
-    } finally {
-      setActingOn(null);
-    }
-  }
 
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!data) return <p className="text-sm text-ink-500">Loading your dashboard...</p>;
@@ -162,73 +136,6 @@ export function TutorOverview({ tutorName }: { tutorName: string }) {
             <p className="mt-0.5 text-[13px] text-ink-500">{card.label}</p>
           </Link>
         ))}
-      </div>
-
-      <div className="flex flex-col gap-5 lg:flex-row">
-        <div className="flex-1 rounded-2xl border border-ink-700/10 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-base font-semibold text-ink-900">Recent requests</p>
-            <Link href="/tutor/requests" className="text-xs font-semibold text-sky-700 hover:text-sky-600">
-              View all
-            </Link>
-          </div>
-          {data.requests.recent.length === 0 ? (
-            <p className="mt-4 text-sm text-ink-300">No pending requests.</p>
-          ) : (
-            <div className="mt-4 flex flex-col gap-3">
-              {data.requests.recent.map((r) => {
-                const busy = actingOn === r.id;
-                return (
-                  <div key={r.id} className="rounded-xl border border-ink-700/8 p-3">
-                    <p className="text-sm font-semibold text-ink-900">{r.subject}</p>
-                    <p className="mt-0.5 text-xs text-ink-500">
-                      {r.student.name} · {formatWhen(r.scheduledAt)}
-                    </p>
-                    <div className="mt-2.5 flex gap-2">
-                      <button
-                        disabled={busy}
-                        onClick={() => respond(r.id, acceptBooking)}
-                        className={buttonClass("primary", "px-3.5 py-1.5 text-xs")}
-                      >
-                        Accept
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() => respond(r.id, declineBooking)}
-                        className={buttonClass("outline", "px-3.5 py-1.5 text-xs")}
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 rounded-2xl border border-ink-700/10 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-base font-semibold text-ink-900">Upcoming sessions</p>
-            <Link href="/tutor/sessions" className="text-xs font-semibold text-sky-700 hover:text-sky-600">
-              View all
-            </Link>
-          </div>
-          {data.sessions.upcoming.length === 0 ? (
-            <p className="mt-4 text-sm text-ink-300">Nothing scheduled yet.</p>
-          ) : (
-            <div className="mt-4 flex flex-col gap-3">
-              {data.sessions.upcoming.map((s) => (
-                <div key={s.id} className="rounded-xl border border-ink-700/8 p-3">
-                  <p className="text-sm font-semibold text-ink-900">{s.subject}</p>
-                  <p className="mt-0.5 text-xs text-ink-500">
-                    with {s.student.name} · {formatWhen(s.scheduledAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
