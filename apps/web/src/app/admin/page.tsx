@@ -20,6 +20,7 @@ import {
   deleteAdminReview,
   listAuditLog,
   getAdminStats,
+  listAdminFlaggedMessages,
   ApiError,
   GRADE_LEVEL_LABELS,
   type AdminUser,
@@ -34,6 +35,7 @@ import {
   type AdminReview,
   type AuditLogEntry,
   type AdminStats,
+  type AdminFlaggedMessage,
 } from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -66,6 +68,10 @@ export default function AdminDashboard() {
   const [updatingIssueId, setUpdatingIssueId] = useState<string | null>(null);
   const [issueNotes, setIssueNotes] = useState<Record<string, string>>({});
   const [refundForms, setRefundForms] = useState<Record<string, { amount: string; reason: string }>>({});
+
+  const [flaggedMessages, setFlaggedMessages] = useState<AdminFlaggedMessage[]>([]);
+  const [flaggedMessagesLoading, setFlaggedMessagesLoading] = useState(true);
+  const [flaggedMessagesError, setFlaggedMessagesError] = useState<string | null>(null);
   const [refundingPaymentId, setRefundingPaymentId] = useState<string | null>(null);
   const [refundError, setRefundError] = useState<string | null>(null);
 
@@ -204,6 +210,15 @@ export default function AdminDashboard() {
   }
 
   useEffect(loadIssues, []);
+
+  function loadFlaggedMessages() {
+    listAdminFlaggedMessages()
+      .then(setFlaggedMessages)
+      .catch((err) => setFlaggedMessagesError(err instanceof ApiError ? err.message : "Failed to load flagged messages"))
+      .finally(() => setFlaggedMessagesLoading(false));
+  }
+
+  useEffect(loadFlaggedMessages, []);
 
   async function handleIssueUpdate(issue: AdminIssueReport, status: IssueStatus) {
     setUpdatingIssueId(issue.id);
@@ -630,6 +645,51 @@ export default function AdminDashboard() {
                       </button>
                     )}
                   </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Flagged messages</h2>
+          <p className="mt-1 text-sm text-ink-500">
+            Messages a student or tutor has reported from their booking chat.
+          </p>
+        </div>
+
+        {flaggedMessagesError && (
+          <div className="mt-4">
+            <ErrorText>{flaggedMessagesError}</ErrorText>
+          </div>
+        )}
+
+        {flaggedMessagesLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading flagged messages...</p>
+        ) : flaggedMessages.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">Nothing flagged.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {flaggedMessages.map((m) => {
+              const other = m.conversation.participants.find((p) => p.user.id !== m.sender.id)?.user;
+              return (
+                <li key={m.id} className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/30">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-ink-500">
+                      {m.sender.name} ({m.sender.role.toLowerCase()})
+                      {other && <> &middot; chatting with {other.name} ({other.role.toLowerCase()})</>}
+                    </p>
+                    <span className="text-xs text-ink-300">{new Date(m.sentAt).toLocaleString()}</span>
+                  </div>
+                  {m.conversation.booking && (
+                    <p className="mt-1 text-xs text-ink-300">
+                      Booking: {m.conversation.booking.subject} &middot;{" "}
+                      {new Date(m.conversation.booking.scheduledAt).toLocaleDateString()}
+                    </p>
+                  )}
+                  <p className="mt-2 text-sm text-ink-900">{m.body}</p>
                 </li>
               );
             })}

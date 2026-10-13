@@ -14,6 +14,8 @@ import {
 } from "@/lib/api";
 import { redirectToPayfast } from "@/lib/payfast";
 import { Card, buttonClass, ErrorText, StatusBadge } from "@/components/ui";
+import { BookingMessages } from "@/components/booking-messages";
+import { useAuth } from "@/lib/auth-context";
 
 function StarIcon({ filled }: { filled: boolean }) {
   return (
@@ -24,12 +26,14 @@ function StarIcon({ filled }: { filled: boolean }) {
 }
 
 export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [reviewForms, setReviewForms] = useState<Record<string, { rating: number; comment: string }>>({});
   const [submittingReviewId, setSubmittingReviewId] = useState<string | null>(null);
+  const [expandedMessagesId, setExpandedMessagesId] = useState<string | null>(null);
 
   function load() {
     listBookings()
@@ -182,8 +186,23 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                       Mark complete
                     </button>
                   )}
+                  {b.status !== "CANCELLED" && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedMessagesId((prev) => (prev === b.id ? null : b.id))}
+                      className={buttonClass("outline")}
+                    >
+                      {expandedMessagesId === b.id ? "Hide messages" : "Messages"}
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {expandedMessagesId === b.id && user && (
+                <div className="mt-3 border-t border-ink-700/8 pt-3">
+                  <BookingMessages bookingId={b.id} currentUserId={user.id} />
+                </div>
+              )}
 
               {b.status === "COMPLETED" && (b.review || role === "STUDENT") && (
                 <div className="mt-3 border-t border-ink-700/8 pt-3">

@@ -255,6 +255,37 @@ export function initiatePayment(bookingId: string): Promise<{ actionUrl: string;
   return apiFetch(`/payments/${bookingId}/initiate`, { method: "POST" });
 }
 
+export interface BookingMessage {
+  id: string;
+  body: string;
+  sentAt: string;
+  flagged: boolean;
+  sender: { id: string; name: string; role: "STUDENT" | "TUTOR" | "ADMIN" };
+}
+
+export function listBookingMessages(bookingId: string): Promise<BookingMessage[]> {
+  return apiFetch(`/bookings/${bookingId}/messages`);
+}
+
+export function sendBookingMessage(bookingId: string, body: string): Promise<BookingMessage> {
+  return apiFetch(`/bookings/${bookingId}/messages`, { method: "POST", body: JSON.stringify({ body }) });
+}
+
+export function flagMessage(messageId: string): Promise<BookingMessage> {
+  return apiFetch(`/messages/${messageId}/flag`, { method: "PATCH" });
+}
+
+export interface AdminFlaggedMessage extends BookingMessage {
+  conversation: {
+    booking: { id: string; subject: string; scheduledAt: string } | null;
+    participants: { user: { id: string; name: string; role: "STUDENT" | "TUTOR" | "ADMIN" } }[];
+  };
+}
+
+export function listAdminFlaggedMessages(): Promise<AdminFlaggedMessage[]> {
+  return apiFetch("/messages/admin/flagged");
+}
+
 export interface TutorReview {
   id: string;
   rating: number;
