@@ -81,12 +81,12 @@ export default function RegisterPage() {
       <AuthShell title="Almost there" subtitle="Your guardian's consent is needed before you can start.">
         <p className="text-sm leading-relaxed text-ink-500">
           Your account needs a parent/guardian to consent before you can use the platform.
-          We&apos;ve sent them a link to review and approve.
+          We&apos;ve emailed them a link to review and approve.
         </p>
         <div className="mt-4 rounded-lg border border-gold-400/30 bg-gold-300/10 p-4 text-sm">
           <p className="font-semibold text-gold-600">Dev mode</p>
           <p className="mt-1 text-ink-500">
-            No email provider is wired up yet, so here&apos;s the link directly:
+            Emails aren&apos;t actually delivered in local dev, so here&apos;s the link directly:
           </p>
           <a href={pendingConsentLink} className="mt-1 block break-all font-medium text-sky-700 hover:text-sky-800">
             {pendingConsentLink}

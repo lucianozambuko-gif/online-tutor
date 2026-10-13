@@ -726,6 +726,14 @@ export function changePassword(currentPassword: string, newPassword: string): Pr
   return apiFetch("/auth/password", { method: "PATCH", body: JSON.stringify({ currentPassword, newPassword }) });
 }
 
+export function forgotPassword(email: string): Promise<{ success: boolean }> {
+  return apiFetch("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+export function resetPassword(token: string, newPassword: string): Promise<{ success: boolean }> {
+  return apiFetch("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, newPassword }) });
+}
+
 export function deleteOwnAccount(): Promise<unknown> {
   return apiFetch("/users/me", { method: "DELETE" });
 }

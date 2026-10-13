@@ -155,6 +155,7 @@ model User {
   offlineSyncLogs OfflineSyncLog[]
 
   guardianConsentRequest GuardianConsentRequest?
+  passwordResetTokens    PasswordResetToken[]
 
   aiConversation AiConversation?
 
@@ -292,6 +293,16 @@ model GuardianConsentRequest {
   createdAt     DateTime              @default(now())
   expiresAt     DateTime
   consentedAt   DateTime?
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
 }
 
 model TutorProfile {

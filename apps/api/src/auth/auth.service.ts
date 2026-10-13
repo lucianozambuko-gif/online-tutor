@@ -8,16 +8,26 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { UsersService } from '../users/users.service';
 import { GuardianConsentService } from '../guardian-consent/guardian-consent.service';
+import { EmailService } from '../email/email.service';
+import {
+  guardianConsentEmail,
+  passwordResetEmail,
+} from '../email/email.templates';
+import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './jwt-payload.interface';
 import { Role, UserStatus } from '../prisma/prisma-enums';
 import { calculateAge, MINOR_AGE_CUTOFF } from '../common/age';
 
 const SALT_ROUNDS = 10;
+const PASSWORD_RESET_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 interface UserRecord {
   id: string;
@@ -36,6 +46,8 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly guardianConsentService: GuardianConsentService,
+    private readonly emailService: EmailService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -72,12 +84,12 @@ export class AuthService {
       const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
       guardianConsentLink = `${webOrigin}/guardian-consent/${request.token}`;
 
-      // No email provider is wired up yet — log the link so it's usable in dev,
-      // and return it directly in non-production responses. Replace this with a
-      // real email send once a provider is chosen.
-      this.logger.log(
-        `Guardian consent link for ${user.email}: ${guardianConsentLink}`,
-      );
+      const { subject, html } = guardianConsentEmail({
+        guardianName: dto.guardianName!,
+        studentName: dto.name,
+        consentUrl: guardianConsentLink,
+      });
+      await this.emailService.send({ to: dto.guardianEmail!, subject, html });
     }
 
     const session = this.buildSession(user);
@@ -128,6 +140,61 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
     await this.usersService.updatePassword(userId, passwordHash);
+    return { success: true };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.usersService.findByEmail(dto.email);
+    // Always report success, whether or not the account exists — revealing
+    // the difference lets an attacker enumerate registered emails.
+    if (!user) {
+      this.logger.debug(
+        `Password reset requested for unregistered email: ${dto.email}`,
+      );
+      return { success: true };
+    }
+
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt: new Date(Date.now() + PASSWORD_RESET_EXPIRY_MS),
+      },
+    });
+
+    const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
+    const { subject, html } = passwordResetEmail({
+      name: user.name,
+      resetUrl: `${webOrigin}/reset-password/${token}`,
+    });
+    await this.emailService.send({ to: user.email, subject, html });
+
+    return { success: true };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { token: dto.token },
+    });
+
+    if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
+      throw new BadRequestException(
+        'This reset link is invalid or has expired',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+    await this.usersService.updatePassword(resetToken.userId, passwordHash);
+
+    // Invalidate every outstanding reset token for this user, not just the
+    // one used — otherwise an older, still-unused link stays valid after a
+    // successful reset.
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: resetToken.userId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
     return { success: true };
   }
 

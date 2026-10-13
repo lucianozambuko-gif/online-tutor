@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -21,10 +23,16 @@ import { IssuesModule } from './issues/issues.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
+    // Global safety-net rate limit (100 req/min/IP). Individual endpoints —
+    // auth in particular — set tighter limits with @Throttle() since this
+    // default is too generous to stop credential stuffing on its own.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
+    EmailModule,
     GroqModule,
     AuthModule,
     UsersModule,
@@ -46,6 +54,6 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     AuditLogModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
