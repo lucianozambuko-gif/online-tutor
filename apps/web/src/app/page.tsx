@@ -26,8 +26,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "Safeguarded messaging",
-    body: "In-app chat is scoped to your booking and logged for safety — no unsolicited contact, ever.",
+    title: "AI study helper",
+    body: "Stuck on a problem? Ask Lumen's AI, attach a photo or document, and turn any topic into notes, flashcards, or a quiz.",
     icon: (
       <path
         strokeLinecap="round"
@@ -37,8 +37,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "Learn offline",
-    body: "Download notes and flashcards for the road — your progress syncs the moment you're back online.",
+    title: "Install as an app",
+    body: "Add Lumen to your home screen for one-tap access to your sessions, notes, flashcards, and quizzes.",
     icon: (
       <path
         strokeLinecap="round"
@@ -337,10 +337,18 @@ function Footer() {
           <BrandMark className="h-5 w-5" />
           Lumen
         </div>
-        <p>
-          &copy; {new Date().getFullYear()} Lumen Tutoring. All rights reserved. Built by{" "}
-          <span className="font-medium text-ink-500">Cloud UKO</span>.
-        </p>
+        <div className="flex items-center gap-4">
+          <Link href="/privacy" className="hover:text-ink-500">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-ink-500">
+            Terms
+          </Link>
+          <p>
+            &copy; {new Date().getFullYear()} Lumen Tutoring. Built by{" "}
+            <span className="font-medium text-ink-500">Cloud UKO</span>.
+          </p>
+        </div>
       </div>
     </footer>
   );

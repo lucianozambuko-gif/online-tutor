@@ -97,10 +97,11 @@ export default function GuardianConsentPage({ params }: PageProps<"/guardian-con
         consent is required before they can use it.
       </p>
       <p className="mt-4 text-sm leading-relaxed text-ink-500">
-        By consenting, you confirm you are {details.studentName}&apos;s parent or legal guardian,
-        you agree to the platform&apos;s safeguarding policy, and you understand that in-app
-        messages between {details.studentName} and their tutor are logged and may be reviewed by
-        platform admins for safeguarding purposes.
+        By consenting, you confirm you are {details.studentName}&apos;s parent or legal guardian and
+        you agree to the platform&apos;s safeguarding policy: every tutor is reviewed and approved
+        before they can be booked, sessions are scheduled and paid for through the platform rather
+        than arranged privately, and you or {details.studentName} can report any concern to our
+        admins at any time.
       </p>
       {error && (
         <div className="mt-4">
