@@ -78,6 +78,7 @@ export function AiHelperChat() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
+  const draftRef = useRef<HTMLTextAreaElement>(null);
 
   function loadSubscription() {
     getMySubscription()
@@ -108,6 +109,15 @@ export function AiHelperChat() {
       imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [imagePreviewUrls]);
+
+  // Let the draft box grow with the text instead of hiding it behind a
+  // single-line, horizontally-scrolling input.
+  useEffect(() => {
+    const el = draftRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [draft]);
 
   const maxFiles = subscription?.maxFilesPerMessage ?? 1;
   const attachedCount = images.length + documents.length;
@@ -372,7 +382,7 @@ export function AiHelperChat() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-3 flex flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
+      <form onSubmit={handleSubmit} className="mt-3 flex flex-wrap items-end gap-2 sm:flex-nowrap sm:gap-3">
         <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handlePickImages} className="hidden" />
         <input
           ref={documentInputRef}
@@ -384,12 +394,22 @@ export function AiHelperChat() {
         />
         {/* Full-width on its own row on mobile (so the draft is actually
             visible while typing) via order-1 + w-full forcing everything
-            else to wrap below it; back to inline with the buttons at sm. */}
-        <input
-          className={`${inputClass} order-1 w-full min-w-0 sm:order-2 sm:w-auto sm:flex-1`}
+            else to wrap below it; back to inline with the buttons at sm.
+            A textarea (not input) so it grows with the text instead of
+            scrolling it off sideways; Enter sends, Shift+Enter adds a line. */}
+        <textarea
+          ref={draftRef}
+          rows={1}
+          className={`${inputClass} order-1 w-full min-w-0 resize-none overflow-y-auto sm:order-2 sm:w-auto sm:flex-1`}
           placeholder="Ask a question..."
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
           disabled={sending}
         />
         <button
