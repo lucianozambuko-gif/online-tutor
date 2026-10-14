@@ -17,7 +17,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
-import { imageUploadOptions } from '../common/upload';
+import { imageUploadOptions, resizeAvatarImage } from '../common/upload';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -41,14 +41,15 @@ export class UsersController {
   @Patch('me/avatar')
   @Roles(Role.STUDENT, Role.TUTOR, Role.ADMIN)
   @UseInterceptors(FileInterceptor('avatar', imageUploadOptions))
-  setAvatar(
+  async setAvatar(
     @CurrentUser() currentUser: JwtPayload,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) {
       throw new BadRequestException('No image uploaded');
     }
-    const dataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    const { buffer, mimeType } = await resizeAvatarImage(file.buffer);
+    const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
     return this.usersService.setAvatar(currentUser.sub, dataUrl);
   }
 

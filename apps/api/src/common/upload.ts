@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
+import sharp from 'sharp';
 
 // Files are stored inline as base64 in Postgres (no object storage set up),
 // so this cap keeps rows small and requests fast rather than reflecting any
@@ -16,6 +17,28 @@ export const imageUploadOptions: MulterOptions = {
     callback(null, true);
   },
 };
+
+const AVATAR_SIZE_PX = 256;
+
+// Avatars are embedded as base64 directly in every tutor-list response (no
+// object storage), so an un-resized upload bloats that response for every
+// student browsing tutors, not just the one profile — this is what made
+// /tutors a 10MB+ response for one tutor's full-size photo. Re-encoding to a
+// small square JPEG keeps each one in the tens of KB regardless of what was
+// uploaded, and strips EXIF metadata (e.g. GPS location) as a side benefit.
+export async function resizeAvatarImage(
+  buffer: Buffer,
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const resized = await sharp(buffer)
+    .rotate() // apply EXIF orientation before stripping it, or sideways photos stay sideways
+    .resize(AVATAR_SIZE_PX, AVATAR_SIZE_PX, {
+      fit: 'cover',
+      position: 'attention',
+    })
+    .jpeg({ quality: 82 })
+    .toBuffer();
+  return { buffer: resized, mimeType: 'image/jpeg' };
+}
 
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   'image/jpeg',
