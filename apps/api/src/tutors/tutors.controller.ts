@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -14,6 +15,7 @@ import { TutorsService } from './tutors.service';
 import { UpdateTutorProfileDto } from './dto/update-tutor-profile.dto';
 import { UpdateVerificationDto } from './dto/update-verification.dto';
 import { UpdateTranscriptVerifiedDto } from './dto/update-transcript-verified.dto';
+import { CreateImprovementProofDto } from './dto/create-improvement-proof.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -70,6 +72,50 @@ export class TutorsController {
     return this.tutorsService.adminList();
   }
 
+  @Post('me/improvement-proofs')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TUTOR)
+  @UseInterceptors(FileInterceptor('document', attachmentUploadOptions))
+  uploadImprovementProof(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateImprovementProofDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No document uploaded');
+    }
+    return this.tutorsService.uploadImprovementProof(user.sub, dto, file);
+  }
+
+  @Get('me/improvement-proofs')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TUTOR)
+  listMyImprovementProofs(@CurrentUser() user: JwtPayload) {
+    return this.tutorsService.listMyImprovementProofs(user.sub);
+  }
+
+  @Get('admin/improvement-proofs')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  adminListImprovementProofs() {
+    return this.tutorsService.adminListImprovementProofs();
+  }
+
+  @Patch('improvement-proofs/:id/verify')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  setImprovementProofVerified(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateTranscriptVerifiedDto,
+  ) {
+    return this.tutorsService.setImprovementProofVerified(
+      user.sub,
+      id,
+      dto.verified,
+    );
+  }
+
   @Patch(':id/verification')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
@@ -95,6 +141,11 @@ export class TutorsController {
   @Get(':id/busy-slots')
   getBusySlots(@Param('id') id: string) {
     return this.tutorsService.getBusySlots(id);
+  }
+
+  @Get(':id/improvement-proofs')
+  getVerifiedImprovementProofs(@Param('id') id: string) {
+    return this.tutorsService.getVerifiedImprovementProofs(id);
   }
 
   @Get(':id')

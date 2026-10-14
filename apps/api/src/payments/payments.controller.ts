@@ -50,6 +50,13 @@ export class PaymentsController {
     return this.paymentsService.refund(user.sub, id, dto);
   }
 
+  @Post(':id/mark-test-paid')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  markTestPaid(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.paymentsService.markTestPaid(user.sub, id);
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

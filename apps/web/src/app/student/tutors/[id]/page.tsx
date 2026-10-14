@@ -2,7 +2,16 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { getTutor, listTutorReviews, ApiError, GRADE_LEVEL_LABELS, type TutorSummary, type TutorReview } from "@/lib/api";
+import {
+  getTutor,
+  listTutorReviews,
+  getTutorImprovementProofs,
+  ApiError,
+  GRADE_LEVEL_LABELS,
+  type TutorSummary,
+  type TutorReview,
+  type VerifiedImprovementProof,
+} from "@/lib/api";
 import { Card, ErrorText } from "@/components/ui";
 import { TutorBookingForm } from "@/components/tutor-booking-form";
 import { TutorBusySlots } from "@/components/tutor-busy-slots";
@@ -24,6 +33,7 @@ export default function TutorProfilePage({ params }: PageProps<"/student/tutors/
   const { id } = use(params);
   const [tutor, setTutor] = useState<TutorSummary | null>(null);
   const [reviews, setReviews] = useState<TutorReview[]>([]);
+  const [improvementProofs, setImprovementProofs] = useState<VerifiedImprovementProof[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,6 +42,9 @@ export default function TutorProfilePage({ params }: PageProps<"/student/tutors/
       .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load this tutor"));
     listTutorReviews(id)
       .then(setReviews)
+      .catch(() => {});
+    getTutorImprovementProofs(id)
+      .then(setImprovementProofs)
       .catch(() => {});
   }, [id]);
 
@@ -112,6 +125,23 @@ export default function TutorProfilePage({ params }: PageProps<"/student/tutors/
               )}
             </div>
           </Card>
+
+          {improvementProofs.length > 0 && (
+            <Card>
+              <h2 className="font-display text-lg font-semibold text-ink-900">Verified improvement</h2>
+              <p className="mt-1 text-sm text-ink-500">Admin-verified before/after marks from past students.</p>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {improvementProofs.map((p) => (
+                  <li
+                    key={p.id}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                  >
+                    ✓ {p.subject}: {p.beforeMark} → {p.afterMark}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           <Card>
             <h2 className="font-display text-lg font-semibold text-ink-900">Reviews</h2>

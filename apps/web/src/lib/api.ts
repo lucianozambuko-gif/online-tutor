@@ -177,6 +177,64 @@ export function uploadTutorTranscript(file: File): Promise<OwnTutorProfile> {
   return apiFetch("/tutors/me/transcript", { method: "PATCH", body: form });
 }
 
+export interface ImprovementProof {
+  id: string;
+  studentName: string;
+  subject: string;
+  beforeMark: string;
+  afterMark: string;
+  verified: boolean;
+  verifiedAt: string | null;
+  createdAt: string;
+}
+
+// Public-safe shape shown to students on a tutor's profile — no name, no document.
+export interface VerifiedImprovementProof {
+  id: string;
+  subject: string;
+  beforeMark: string;
+  afterMark: string;
+}
+
+export function uploadImprovementProof(
+  data: { studentName: string; subject: string; beforeMark: string; afterMark: string },
+  file: File,
+): Promise<ImprovementProof> {
+  const form = new FormData();
+  form.append("studentName", data.studentName);
+  form.append("subject", data.subject);
+  form.append("beforeMark", data.beforeMark);
+  form.append("afterMark", data.afterMark);
+  form.append("document", file);
+  return apiFetch("/tutors/me/improvement-proofs", { method: "POST", body: form });
+}
+
+export function listMyImprovementProofs(): Promise<ImprovementProof[]> {
+  return apiFetch("/tutors/me/improvement-proofs");
+}
+
+export function getTutorImprovementProofs(tutorId: string): Promise<VerifiedImprovementProof[]> {
+  return apiFetch(`/tutors/${tutorId}/improvement-proofs`);
+}
+
+export interface AdminImprovementProof extends ImprovementProof {
+  documentData: string;
+  documentMimeType: string;
+  documentName: string;
+  tutor: { id: string; name: string; email: string };
+}
+
+export function listAdminImprovementProofs(): Promise<AdminImprovementProof[]> {
+  return apiFetch("/tutors/admin/improvement-proofs");
+}
+
+export function setImprovementProofVerified(id: string, verified: boolean): Promise<ImprovementProof> {
+  return apiFetch(`/tutors/improvement-proofs/${id}/verify`, {
+    method: "PATCH",
+    body: JSON.stringify({ verified }),
+  });
+}
+
 export interface AdminTutor {
   id: string;
   name: string;
@@ -665,6 +723,13 @@ export interface AdminIssueReport extends IssueReport {
 
 export function refundPayment(paymentId: string, data: { amount?: number; reason: string }): Promise<AdminPayment> {
   return apiFetch(`/payments/${paymentId}/refund`, { method: "POST", body: JSON.stringify(data) });
+}
+
+// Admin-only test helper: forces a pending payment to PAID without PayFast,
+// so a real booking can be pushed through to a video session for testing.
+// Never counts toward a real payout to the tutor.
+export function markPaymentTestPaid(paymentId: string): Promise<AdminPayment> {
+  return apiFetch(`/payments/${paymentId}/mark-test-paid`, { method: "POST" });
 }
 
 export interface AdminPaymentRow extends AdminPayment {

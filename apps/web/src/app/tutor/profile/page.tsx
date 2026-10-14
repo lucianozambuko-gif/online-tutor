@@ -5,6 +5,7 @@ import { getOwnTutorProfile, ApiError, type OwnTutorProfile } from "@/lib/api";
 import { TutorProfileForm } from "@/components/tutor-profile-form";
 import { AvatarUploader } from "@/components/avatar-uploader";
 import { TranscriptUploader } from "@/components/transcript-uploader";
+import { ImprovementProofUploader } from "@/components/improvement-proof-uploader";
 import { BankDetailsForm } from "@/components/bank-details-form";
 import { TutorReviewsCard } from "@/components/tutor-reviews-card";
 import { Card } from "@/components/ui";
@@ -57,6 +58,7 @@ export default function TutorProfilePage() {
           <TutorProfileForm initial={profile} />
           <BankDetailsForm initial={profile} />
           <TranscriptUploader initial={profile} />
+          <ImprovementProofUploader />
           {user && <TutorReviewsCard tutorId={user.id} />}
         </>
       ) : (

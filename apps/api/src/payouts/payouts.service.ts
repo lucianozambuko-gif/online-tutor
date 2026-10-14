@@ -12,6 +12,7 @@ import {
 } from '../prisma/prisma-enums';
 import { MarkPayoutPaidDto } from './dto/mark-payout-paid.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { TEST_PAYMENT_REF } from '../payments/payments.service';
 
 // Generated at payout-creation time (not when marked paid) so an admin has
 // something to actually use as the reference on the real-world EFT, rather
@@ -60,6 +61,7 @@ export class PayoutsService {
         where: {
           status: PaymentStatus.PAID,
           payoutId: null,
+          payfastRef: { not: TEST_PAYMENT_REF },
           booking: { tutorId, status: BookingStatus.COMPLETED },
         },
         select: {
@@ -117,6 +119,7 @@ export class PayoutsService {
       where: {
         status: PaymentStatus.PAID,
         payoutId: null,
+        payfastRef: { not: TEST_PAYMENT_REF },
         booking: { status: BookingStatus.COMPLETED },
       },
       include: { booking: { select: { tutorId: true } } },

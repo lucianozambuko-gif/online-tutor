@@ -37,6 +37,25 @@ export function guardianConsentEmail(params: {
   };
 }
 
+export function portfolioReminderEmail(params: {
+  tutorName: string;
+  profileUrl: string;
+}): { subject: string; html: string } {
+  const { tutorName, profileUrl } = params;
+  return {
+    subject: 'Finish your Lumen profile so students can find you',
+    html: layout(
+      'A few details left on your profile',
+      `
+      <p>Hi ${tutorName},</p>
+      <p>You're approved and ready to tutor on Lumen — but your profile is still missing a few things students look for before booking: your subjects, the grades you teach, your hourly rate, and a short bio.</p>
+      <p>Students browse full profiles before they book, so an empty one means fewer requests.</p>
+      ${button(profileUrl, 'Complete your profile')}
+      `,
+    ),
+  };
+}
+
 export function passwordResetEmail(params: {
   name: string;
   resetUrl: string;

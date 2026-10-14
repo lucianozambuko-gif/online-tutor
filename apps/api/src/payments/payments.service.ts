@@ -7,11 +7,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentStatus } from '../prisma/prisma-enums';
+import { PaymentMethod, PaymentStatus } from '../prisma/prisma-enums';
 import { generatePayfastSignature, getPayfastBaseUrl } from './payfast.util';
 import { callRefundApi } from './payfast-management-api.util';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
+
+// Sentinel payfastRef for payments an admin force-marked paid for testing
+// (e.g. exercising a real tutor's booking flow without real money moving).
+// Payouts excludes anything tagged with this so a test payment can never
+// turn into a real EFT obligation to the tutor.
+export const TEST_PAYMENT_REF = 'ADMIN_TEST_PAYMENT';
 
 const ADMIN_PAYMENT_INCLUDE = {
   booking: {
@@ -221,6 +227,41 @@ export class PaymentsService {
     await this.auditLog.record(
       adminId,
       isFullyRefunded ? 'PAYMENT_REFUNDED' : 'PAYMENT_PARTIALLY_REFUNDED',
+      'Payment',
+      paymentId,
+    );
+    return result;
+  }
+
+  // Admin-only: forces a pending payment straight to PAID without going
+  // through PayFast at all, so a real booking (with a real tutor) can be
+  // pushed through to a video session for testing. Tagged with
+  // TEST_PAYMENT_REF so PayoutsService never batches it into a real EFT —
+  // this must never create an actual payout obligation to the tutor.
+  async markTestPaid(adminId: string, paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+    if (payment.status !== PaymentStatus.PENDING) {
+      throw new BadRequestException(
+        `Payment is already ${payment.status.toLowerCase()}`,
+      );
+    }
+
+    const result = await this.prisma.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: PaymentStatus.PAID,
+        method: PaymentMethod.EFT,
+        payfastRef: TEST_PAYMENT_REF,
+      },
+    });
+    await this.auditLog.record(
+      adminId,
+      'PAYMENT_MARKED_TEST_PAID',
       'Payment',
       paymentId,
     );

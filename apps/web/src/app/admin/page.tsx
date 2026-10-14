@@ -14,6 +14,7 @@ import {
   updateIssueReport,
   listAdminSubscriptions,
   refundPayment,
+  markPaymentTestPaid,
   listAdminPayments,
   listAdminBookings,
   listAdminReviews,
@@ -21,11 +22,14 @@ import {
   listAuditLog,
   getAdminStats,
   listAdminFlaggedMessages,
+  listAdminImprovementProofs,
+  setImprovementProofVerified,
   ApiError,
   GRADE_LEVEL_LABELS,
   type AdminUser,
   type Payout,
   type AdminTutor,
+  type AdminImprovementProof,
   type AdminIssueReport,
   type IssueStatus,
   type AdminSubscription,
@@ -74,6 +78,7 @@ export default function AdminDashboard() {
   const [flaggedMessagesError, setFlaggedMessagesError] = useState<string | null>(null);
   const [refundingPaymentId, setRefundingPaymentId] = useState<string | null>(null);
   const [refundError, setRefundError] = useState<string | null>(null);
+  const [markingTestPaidId, setMarkingTestPaidId] = useState<string | null>(null);
 
   const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
@@ -98,6 +103,11 @@ export default function AdminDashboard() {
   const [activity, setActivity] = useState<AuditLogEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
   const [activityError, setActivityError] = useState<string | null>(null);
+
+  const [improvementProofs, setImprovementProofs] = useState<AdminImprovementProof[]>([]);
+  const [improvementProofsLoading, setImprovementProofsLoading] = useState(true);
+  const [improvementProofsError, setImprovementProofsError] = useState<string | null>(null);
+  const [decidingProofId, setDecidingProofId] = useState<string | null>(null);
 
   function load() {
     listUsers()
@@ -170,6 +180,30 @@ export default function AdminDashboard() {
   }
 
   useEffect(loadTutors, []);
+
+  function loadImprovementProofs() {
+    listAdminImprovementProofs()
+      .then(setImprovementProofs)
+      .catch((err) => setImprovementProofsError(err instanceof ApiError ? err.message : "Failed to load improvement proofs"))
+      .finally(() => setImprovementProofsLoading(false));
+  }
+
+  useEffect(loadImprovementProofs, []);
+
+  async function handleProofVerified(proof: AdminImprovementProof, verified: boolean) {
+    setDecidingProofId(proof.id);
+    setImprovementProofsError(null);
+    try {
+      await setImprovementProofVerified(proof.id, verified);
+      setImprovementProofsLoading(true);
+      loadImprovementProofs();
+      loadActivity();
+    } catch (err) {
+      setImprovementProofsError(err instanceof ApiError ? err.message : "Failed to update this submission");
+    } finally {
+      setDecidingProofId(null);
+    }
+  }
 
   async function handleVerification(tutor: AdminTutor, status: "APPROVED" | "REJECTED") {
     if (status === "REJECTED" && !window.confirm(`Reject ${tutor.name} as a tutor? They won't be bookable.`)) return;
@@ -261,6 +295,28 @@ export default function AdminDashboard() {
       setRefundError(err instanceof ApiError ? err.message : "Failed to process refund");
     } finally {
       setRefundingPaymentId(null);
+    }
+  }
+
+  async function handleMarkTestPaid(payment: AdminPaymentRow) {
+    if (
+      !window.confirm(
+        `Mark this R${payment.amount} payment as paid WITHOUT real money moving? Only use this for testing — it never shows up in the tutor's real payout.`,
+      )
+    ) {
+      return;
+    }
+    setMarkingTestPaidId(payment.id);
+    setRefundError(null);
+    try {
+      await markPaymentTestPaid(payment.id);
+      setPaymentsLoading(true);
+      loadPayments();
+      loadActivity();
+    } catch (err) {
+      setRefundError(err instanceof ApiError ? err.message : "Failed to mark as paid");
+    } finally {
+      setMarkingTestPaidId(null);
     }
   }
 
@@ -499,6 +555,79 @@ export default function AdminDashboard() {
                   )}
                 </li>
               ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Improvement proofs</h2>
+          <p className="mt-1 text-sm text-ink-500">
+            Report cards tutors submitted as proof of a past student&apos;s improvement — private, never shown to
+            students as documents, only as a verified subject/marks badge.
+          </p>
+        </div>
+
+        {improvementProofsError && (
+          <div className="mt-4">
+            <ErrorText>{improvementProofsError}</ErrorText>
+          </div>
+        )}
+
+        {improvementProofsLoading ? (
+          <p className="mt-4 text-sm text-ink-500">Loading submissions...</p>
+        ) : improvementProofs.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No submissions yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {improvementProofs.map((p) => (
+              <li key={p.id} className="rounded-xl border border-ink-700/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-ink-900">
+                      {p.subject}: {p.beforeMark} → {p.afterMark}
+                    </p>
+                    <p className="text-xs text-ink-500">
+                      {p.tutor.name} ({p.tutor.email}) · student: {p.studentName}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {p.verified ? (
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Verified</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-gold-600">Pending</span>
+                    )}
+                    <a
+                      href={`data:${p.documentMimeType};base64,${p.documentData}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-semibold text-sky-700 hover:text-sky-600"
+                    >
+                      View document
+                    </a>
+                    {!p.verified ? (
+                      <button
+                        type="button"
+                        disabled={decidingProofId === p.id}
+                        onClick={() => handleProofVerified(p, true)}
+                        className={buttonClass("primary", "px-3 py-1.5 text-xs")}
+                      >
+                        Verify
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={decidingProofId === p.id}
+                        onClick={() => handleProofVerified(p, false)}
+                        className={buttonClass("ghost", "px-3 py-1.5 text-xs")}
+                      >
+                        Unverify
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </Card>
@@ -775,6 +904,17 @@ export default function AdminDashboard() {
                             {refundingPaymentId === p.id ? "Refunding..." : "Refund"}
                           </button>
                         </div>
+                      )}
+                      {p.status === "PENDING" && (
+                        <button
+                          type="button"
+                          disabled={markingTestPaidId === p.id}
+                          onClick={() => handleMarkTestPaid(p)}
+                          title="Forces this payment to PAID without PayFast — testing only, never counted in the tutor's real payout."
+                          className={buttonClass("outline", "px-2.5 py-1 text-xs")}
+                        >
+                          {markingTestPaidId === p.id ? "Marking..." : "Mark as paid (test)"}
+                        </button>
                       )}
                     </td>
                   </tr>

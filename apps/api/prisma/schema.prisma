@@ -165,6 +165,8 @@ model User {
 
   tutorNotesWritten TutorNote[] @relation("TutorNotesByTutor")
   tutorNotesAboutMe TutorNote[] @relation("TutorNotesAboutStudent")
+
+  improvementProofs ImprovementProof[] @relation("ImprovementProofsByTutor")
 }
 
 // One persistent AI-helper thread per student (not per booking) — kept
@@ -422,6 +424,30 @@ model TutorNote {
   attachmentMimeType String?
   attachmentName     String?
   createdAt DateTime @default(now())
+}
+
+// Private proof a tutor submits of a past student's mark improvement (e.g. a
+// report card scan), reviewed by an admin before it counts as verified.
+// studentName is free text, not a User relation — the student referenced
+// often isn't a Lumen account at all (a past student, or from before the
+// tutor joined). The document itself (a minor's academic record) is only
+// ever shown to the uploading tutor and an admin; a verified entry is
+// surfaced publicly as just subject + before/after marks, no name and no
+// document — see TutorsService's public select.
+model ImprovementProof {
+  id          String   @id @default(cuid())
+  tutorId     String
+  tutor       User     @relation("ImprovementProofsByTutor", fields: [tutorId], references: [id])
+  studentName String
+  subject     String
+  beforeMark  String
+  afterMark   String
+  documentData     String
+  documentMimeType String
+  documentName     String
+  verified    Boolean   @default(false)
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
 }
 
 model Payment {
