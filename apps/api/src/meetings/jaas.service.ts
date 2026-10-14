@@ -23,7 +23,10 @@ export interface JaasUser {
 export class JaasService {
   private readonly appId = process.env.JAAS_APP_ID ?? '';
   private readonly keyId = process.env.JAAS_KEY_ID ?? '';
-  private readonly privateKey = (process.env.JAAS_PRIVATE_KEY ?? '').replace(/\\n/g, '\n');
+  private readonly privateKey = (process.env.JAAS_PRIVATE_KEY ?? '').replace(
+    /\\n/g,
+    '\n',
+  );
 
   get domain() {
     return '8x8.vc';
@@ -42,7 +45,9 @@ export class JaasService {
   /** Signs a short-lived JWT scoped to ONE room. */
   signToken(room: string, user: JaasUser, ttlSeconds = 2 * 60 * 60) {
     if (!this.appId || !this.keyId || !this.privateKey) {
-      throw new InternalServerErrorException('JaaS is not configured on the server');
+      throw new InternalServerErrorException(
+        'JaaS is not configured on the server',
+      );
     }
     const now = Math.floor(Date.now() / 1000);
 
@@ -75,7 +80,10 @@ export class JaasService {
         },
       },
       this.privateKey,
-      { algorithm: 'RS256', header: { alg: 'RS256', kid: this.keyId, typ: 'JWT' } },
+      {
+        algorithm: 'RS256',
+        header: { alg: 'RS256', kid: this.keyId, typ: 'JWT' },
+      },
     );
   }
 

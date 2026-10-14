@@ -48,7 +48,10 @@ export class JaasWebhookController {
       throw new UnauthorizedException('Bad JaaS webhook authorization');
     }
 
-    const room = String(evt?.fqn ?? '').split('/').pop() ?? '';
+    const room =
+      String(evt?.fqn ?? '')
+        .split('/')
+        .pop() ?? '';
     if (!room.startsWith(ROOM_PREFIX) || !evt.eventType) {
       return { ok: true, ignored: true };
     }

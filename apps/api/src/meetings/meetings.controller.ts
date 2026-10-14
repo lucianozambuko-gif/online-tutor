@@ -40,8 +40,12 @@ export class MeetingsController {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        tutor: { select: { id: true, name: true, email: true, avatarUrl: true } },
-        student: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        tutor: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+        student: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
       },
     });
     if (!booking) throw new NotFoundException('Booking not found');
