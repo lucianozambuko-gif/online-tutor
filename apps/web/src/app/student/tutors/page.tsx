@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { listTutors, ApiError, GRADE_LEVEL_LABELS, type TutorSummary } from "@/lib/api";
-import { Card, ErrorText } from "@/components/ui";
+import { useEffect, useMemo, useState } from "react";
+import { listTutors, ApiError, GRADE_LEVEL_LABELS, type TutorSummary, type GradeLevel } from "@/lib/api";
+import { Card, ErrorText, inputClass } from "@/components/ui";
+
+const GRADE_LEVELS: GradeLevel[] = ["PRIMARY", "HIGH_SCHOOL", "VARSITY"];
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -14,6 +16,9 @@ export default function TutorsPage() {
   const [tutors, setTutors] = useState<TutorSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [gradeFilter, setGradeFilter] = useState<GradeLevel | "">("");
 
   useEffect(() => {
     listTutors()
@@ -21,6 +26,22 @@ export default function TutorsPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load tutors"))
       .finally(() => setLoading(false));
   }, []);
+
+  const subjectOptions = useMemo(() => {
+    const set = new Set<string>();
+    tutors.forEach((t) => t.tutorProfile.subjects.forEach((s) => set.add(s)));
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [tutors]);
+
+  const filteredTutors = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tutors.filter((t) => {
+      if (q && !t.name.toLowerCase().includes(q)) return false;
+      if (subjectFilter && !t.tutorProfile.subjects.includes(subjectFilter)) return false;
+      if (gradeFilter && !t.tutorProfile.gradeLevels.includes(gradeFilter)) return false;
+      return true;
+    });
+  }, [tutors, search, subjectFilter, gradeFilter]);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -32,6 +53,42 @@ export default function TutorsPage() {
         <p className="mt-1 text-sm text-ink-500">Browse approved tutors and open a profile to see their reviews, schedule and book a session.</p>
       </div>
 
+      {!loading && tutors.length > 0 && (
+        <div className="mt-6 flex flex-wrap gap-3">
+          <input
+            type="text"
+            placeholder="Search by tutor name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`${inputClass} min-w-0 flex-1 sm:w-56 sm:flex-none`}
+          />
+          <select
+            value={subjectFilter}
+            onChange={(e) => setSubjectFilter(e.target.value)}
+            className={`${inputClass} sm:w-auto`}
+          >
+            <option value="">All subjects</option>
+            {subjectOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            value={gradeFilter}
+            onChange={(e) => setGradeFilter(e.target.value as GradeLevel | "")}
+            className={`${inputClass} sm:w-auto`}
+          >
+            <option value="">All grades</option>
+            {GRADE_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {GRADE_LEVEL_LABELS[level]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="mt-6">
         {error && <ErrorText>{error}</ErrorText>}
         {loading ? (
@@ -40,9 +97,13 @@ export default function TutorsPage() {
           <Card>
             <p className="text-sm text-ink-500">No tutors available to book yet.</p>
           </Card>
+        ) : filteredTutors.length === 0 ? (
+          <Card>
+            <p className="text-sm text-ink-500">No tutors match your filters.</p>
+          </Card>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {tutors.map((t) => {
+            {filteredTutors.map((t) => {
               const rating = t.tutorProfile.avgRating ? Number(t.tutorProfile.avgRating).toFixed(1) : null;
               const levels = t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ");
               return (
