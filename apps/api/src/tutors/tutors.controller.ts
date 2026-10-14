@@ -92,6 +92,11 @@ export class TutorsController {
     return this.tutorsService.setTranscriptVerified(user.sub, id, dto.verified);
   }
 
+  @Get(':id/busy-slots')
+  getBusySlots(@Param('id') id: string) {
+    return this.tutorsService.getBusySlots(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.tutorsService.findOne(id);

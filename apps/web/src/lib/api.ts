@@ -101,6 +101,7 @@ export interface TutorSummary {
   tutorProfile: {
     subjects: string[];
     gradeLevels: GradeLevel[];
+    qualifications: string[];
     hourlyRate: string;
     bio: string | null;
     avgRating: string | null;
@@ -111,6 +112,19 @@ export interface TutorSummary {
 
 export function listTutors(): Promise<TutorSummary[]> {
   return apiFetch("/tutors");
+}
+
+export function getTutor(id: string): Promise<TutorSummary> {
+  return apiFetch(`/tutors/${id}`);
+}
+
+export interface TutorBusySlot {
+  scheduledAt: string;
+  durationMinutes: number;
+}
+
+export function getTutorBusySlots(id: string): Promise<TutorBusySlot[]> {
+  return apiFetch(`/tutors/${id}/busy-slots`);
 }
 
 export const MIN_HOURLY_RATE_ZAR = 50;

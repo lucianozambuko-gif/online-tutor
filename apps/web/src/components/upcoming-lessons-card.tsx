@@ -80,7 +80,7 @@ export function UpcomingLessonsCard({ lessons }: { lessons: Lesson[] }) {
         </div>
       )}
 
-      <Link href="#book-a-tutor" className={buttonClass("primary", "mt-5 w-full")}>
+      <Link href="/student/tutors" className={buttonClass("primary", "mt-5 w-full")}>
         Book another lesson
       </Link>
     </div>

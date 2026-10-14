@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, UserStatus, VerificationStatus } from '../prisma/prisma-enums';
+import {
+  BookingStatus,
+  Role,
+  UserStatus,
+  VerificationStatus,
+} from '../prisma/prisma-enums';
 import { UpdateTutorProfileDto } from './dto/update-tutor-profile.dto';
 import { UpdateVerificationDto } from './dto/update-verification.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -13,6 +18,7 @@ const TUTOR_LIST_SELECT = {
     select: {
       subjects: true,
       gradeLevels: true,
+      qualifications: true,
       hourlyRate: true,
       bio: true,
       avgRating: true,
@@ -58,6 +64,33 @@ export class TutorsService {
       throw new NotFoundException('Tutor not found');
     }
     return tutor;
+  }
+
+  // Lets a student see when a tutor is already busy without exposing who
+  // booked them or what for — just the time ranges.
+  async getBusySlots(tutorId: string) {
+    const tutor = await this.prisma.user.findFirst({
+      where: {
+        id: tutorId,
+        role: Role.TUTOR,
+        status: UserStatus.ACTIVE,
+        tutorProfile: { verificationStatus: VerificationStatus.APPROVED },
+      },
+      select: { id: true },
+    });
+    if (!tutor) {
+      throw new NotFoundException('Tutor not found');
+    }
+
+    return this.prisma.booking.findMany({
+      where: {
+        tutorId,
+        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+        scheduledAt: { gte: new Date() },
+      },
+      select: { scheduledAt: true, durationMinutes: true },
+      orderBy: { scheduledAt: 'asc' },
+    });
   }
 
   async getOwnProfile(userId: string) {

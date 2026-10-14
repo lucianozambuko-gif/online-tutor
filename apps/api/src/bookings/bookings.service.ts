@@ -57,6 +57,30 @@ export class BookingsService {
       );
     }
 
+    const start = new Date(dto.scheduledAt);
+    const end = new Date(start.getTime() + dto.durationMinutes * 60_000);
+    // Prisma can't compare scheduledAt + durationMinutes against a dynamic
+    // value in a single where clause, so pull the small set of candidates
+    // that could overlap (start before this one ends) and check each one's
+    // own end time in memory.
+    const candidates = await this.prisma.booking.findMany({
+      where: {
+        tutorId: dto.tutorId,
+        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+        scheduledAt: { lt: end },
+      },
+      select: { scheduledAt: true, durationMinutes: true },
+    });
+    const hasOverlap = candidates.some(
+      (b) =>
+        new Date(b.scheduledAt.getTime() + b.durationMinutes * 60_000) > start,
+    );
+    if (hasOverlap) {
+      throw new ConflictException(
+        'This tutor already has a booking that overlaps with the selected time',
+      );
+    }
+
     const hourlyRate = Number(tutor.tutorProfile.hourlyRate);
     // Defense in depth alongside the DTO's own @Min — a tutor who registered
     // before this floor existed, or was updated directly, shouldn't still be

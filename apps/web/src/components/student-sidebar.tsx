@@ -230,9 +230,13 @@ export function StudentSidebar({ open = false, onClose }: { open?: boolean; onCl
           <div className="my-2.5 h-px bg-ink-700/8" />
 
           <Link
-            href="/student#book-a-tutor"
+            href="/student/tutors"
             onClick={onClose}
-            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink-500 transition hover:bg-ink-700/5 hover:text-ink-900"
+            className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
+              pathname.startsWith("/student/tutors")
+                ? "bg-sky-100 font-semibold text-sky-700"
+                : "font-medium text-ink-500 hover:bg-ink-700/5 hover:text-ink-900"
+            }`}
           >
             <BookTutorIcon />
             Book a tutor

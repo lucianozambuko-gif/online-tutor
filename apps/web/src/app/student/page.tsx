@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { BookTutorForm } from "@/components/book-tutor-form";
 import { BookingsList } from "@/components/bookings-list";
 import { DashboardOverview } from "@/components/dashboard-overview";
 import { useAuth } from "@/lib/auth-context";
 
 export default function StudentDashboard() {
   const { user, loading } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
 
   if (loading || !user) {
     return <p className="text-sm text-ink-500">Loading your dashboard...</p>;
@@ -27,11 +24,8 @@ export default function StudentDashboard() {
     <div className="space-y-10">
       <DashboardOverview studentName={user.name.split(" ")[0]} />
 
-      <div id="book-a-tutor">
-        <BookTutorForm onBooked={() => setRefreshKey((k) => k + 1)} />
-      </div>
       <div id="my-bookings">
-        <BookingsList key={refreshKey} role="STUDENT" />
+        <BookingsList role="STUDENT" />
       </div>
     </div>
   );
