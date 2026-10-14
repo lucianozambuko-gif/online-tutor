@@ -6,6 +6,9 @@ build/
 .env
 .env.local
 .env.*.local
+*.pk
+*.pem
+*.key
 coverage/
 .DS_Store
 Thumbs.db
