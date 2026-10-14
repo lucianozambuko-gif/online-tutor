@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { SetRecordingUrlDto } from './dto/set-recording-url.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -69,5 +70,16 @@ export class BookingsController {
   @Patch(':id/complete')
   complete(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.bookingsService.complete(id, user.sub, user.role);
+  }
+
+  @Patch(':id/recording-url')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  setRecordingUrl(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: SetRecordingUrlDto,
+  ) {
+    return this.bookingsService.setRecordingUrl(user.sub, id, dto);
   }
 }

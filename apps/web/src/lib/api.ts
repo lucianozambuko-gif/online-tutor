@@ -287,9 +287,18 @@ export interface Booking {
   mode: "ONLINE" | "IN_PERSON";
   status: BookingStatus;
   meetingUrl: string | null;
+  // Only ever populated for a student once they've paid for the recording
+  // add-on (see payment.recordingRequested) — the API redacts it otherwise.
+  recordingUrl: string | null;
   student: { id: string; name: string; email: string };
   tutor: { id: string; name: string; email: string };
-  payment: { id: string; amount: string; status: PaymentStatus } | null;
+  payment: {
+    id: string;
+    amount: string;
+    status: PaymentStatus;
+    recordingRequested: boolean;
+    recordingFee: string | null;
+  } | null;
   review: Review | null;
 }
 
@@ -350,8 +359,24 @@ export function completeBooking(id: string): Promise<Booking> {
   return apiFetch(`/bookings/${id}/complete`, { method: "PATCH" });
 }
 
-export function initiatePayment(bookingId: string): Promise<{ actionUrl: string; fields: Record<string, string> }> {
-  return apiFetch(`/payments/${bookingId}/initiate`, { method: "POST" });
+export function initiatePayment(
+  bookingId: string,
+  wantsRecording?: boolean,
+): Promise<{ actionUrl: string; fields: Record<string, string> }> {
+  return apiFetch(`/payments/${bookingId}/initiate`, {
+    method: "POST",
+    body: JSON.stringify({ wantsRecording }),
+  });
+}
+
+// Admin-only test helper: attaches a recording URL to a booking until the
+// real 8x8 JaaS recording webhook is wired up, so the paid-download flow can
+// be exercised end to end.
+export function setBookingRecordingUrl(bookingId: string, recordingUrl: string): Promise<Booking> {
+  return apiFetch(`/bookings/${bookingId}/recording-url`, {
+    method: "PATCH",
+    body: JSON.stringify({ recordingUrl }),
+  });
 }
 
 export interface BookingMessage {

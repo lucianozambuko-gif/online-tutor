@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -27,8 +28,9 @@ export class PaymentsController {
   initiate(
     @CurrentUser() user: JwtPayload,
     @Param('bookingId') bookingId: string,
+    @Body() dto: InitiatePaymentDto,
   ) {
-    return this.paymentsService.initiate(bookingId, user.sub);
+    return this.paymentsService.initiate(bookingId, user.sub, dto);
   }
 
   // Public: called server-to-server by PayFast, authenticated by signature

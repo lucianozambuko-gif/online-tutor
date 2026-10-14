@@ -17,6 +17,7 @@ import {
   markPaymentTestPaid,
   listAdminPayments,
   listAdminBookings,
+  setBookingRecordingUrl,
   listAdminReviews,
   deleteAdminReview,
   listAuditLog,
@@ -147,12 +148,35 @@ export default function AdminDashboard() {
 
   useEffect(loadPayments, []);
 
-  useEffect(() => {
+  function loadBookings() {
     listAdminBookings()
       .then(setBookings)
       .catch((err) => setBookingsError(err instanceof ApiError ? err.message : "Failed to load bookings"))
       .finally(() => setBookingsLoading(false));
-  }, []);
+  }
+
+  useEffect(loadBookings, []);
+
+  const [settingRecordingId, setSettingRecordingId] = useState<string | null>(null);
+
+  async function handleSetRecordingUrl(booking: Booking) {
+    const url = window.prompt(
+      `Test-only: paste a video URL to attach as the recording for "${booking.subject}". This simulates the real 8x8 recording webhook, which isn't wired up yet.`,
+      booking.recordingUrl ?? "",
+    );
+    if (!url) return;
+    setSettingRecordingId(booking.id);
+    setBookingsError(null);
+    try {
+      await setBookingRecordingUrl(booking.id, url);
+      setBookingsLoading(true);
+      loadBookings();
+    } catch (err) {
+      setBookingsError(err instanceof ApiError ? err.message : "Failed to set recording URL");
+    } finally {
+      setSettingRecordingId(null);
+    }
+  }
 
   function loadReviews() {
     listAdminReviews()
@@ -956,6 +980,7 @@ export default function AdminDashboard() {
                 <th className="py-2 pr-4 font-medium">When</th>
                 <th className="py-2 pr-4 font-medium">Mode</th>
                 <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 pr-4 font-medium">Recording</th>
               </tr>
             </thead>
             <tbody>
@@ -968,6 +993,21 @@ export default function AdminDashboard() {
                   <td className="py-3 pr-4 text-ink-500">{b.mode === "ONLINE" ? "Online" : "In person"}</td>
                   <td className="py-3 pr-4">
                     <StatusBadge status={b.status} />
+                  </td>
+                  <td className="py-3 pr-4">
+                    {b.mode === "ONLINE" && (
+                      <div className="flex flex-col items-start gap-1">
+                        {b.recordingUrl && <span className="text-xs text-emerald-600 dark:text-emerald-400">Set</span>}
+                        <button
+                          type="button"
+                          disabled={settingRecordingId === b.id}
+                          onClick={() => handleSetRecordingUrl(b)}
+                          className={buttonClass("outline", "px-2.5 py-1 text-xs")}
+                        >
+                          {b.recordingUrl ? "Replace URL (test)" : "Set URL (test)"}
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -471,6 +471,13 @@ model Payment {
   refundedAmount    Decimal?      @db.Decimal(10, 2)
   refundReason      String?
   refundedAt        DateTime?
+  // Chosen at the same time as the session payment (not a later purchase) —
+  // adds recordingFee on top of the session amount, charged in the same
+  // PayFast transaction. recordingFee is pure platform profit: it's added to
+  // platformFee, never to tutorPayoutAmount. Gates whether the student can
+  // see Booking.recordingUrl at all — see BookingsService's redaction.
+  recordingRequested Boolean  @default(false)
+  recordingFee       Decimal? @db.Decimal(10, 2)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 }

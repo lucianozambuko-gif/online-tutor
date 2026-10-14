@@ -14,10 +14,12 @@ import {
   VerificationStatus,
 } from '../prisma/prisma-enums';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { SetRecordingUrlDto } from './dto/set-recording-url.dto';
 import {
   DEFAULT_COMMISSION_PERCENT,
   MIN_HOURLY_RATE_ZAR,
 } from '../common/pricing';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 function getCommissionPercent(): number {
   const raw = process.env.PLATFORM_COMMISSION_PERCENT;
@@ -34,7 +36,27 @@ const BOOKING_INCLUDE = {
 
 @Injectable()
 export class BookingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
+
+  // Students only ever see the actual recording link once they've paid for
+  // it in the same PayFast transaction as the session — otherwise the raw
+  // URL would leak to anyone who can view the booking at all. Tutors and
+  // admins see it unredacted (their own session / support access).
+  private redactRecording<
+    T extends {
+      recordingUrl: string | null;
+      payment: { recordingRequested: boolean; status: PaymentStatus } | null;
+    },
+  >(booking: T, role: Role): T {
+    if (role !== Role.STUDENT) return booking;
+    const paidForRecording =
+      booking.payment?.recordingRequested &&
+      booking.payment.status === PaymentStatus.PAID;
+    return paidForRecording ? booking : { ...booking, recordingUrl: null };
+  }
 
   async create(studentId: string, dto: CreateBookingDto) {
     if (new Date(dto.scheduledAt).getTime() <= Date.now()) {
@@ -118,7 +140,7 @@ export class BookingsService {
     });
   }
 
-  findMine(userId: string, role: Role) {
+  async findMine(userId: string, role: Role) {
     const where =
       role === Role.STUDENT
         ? { studentId: userId }
@@ -126,11 +148,12 @@ export class BookingsService {
           ? { tutorId: userId }
           : {};
 
-    return this.prisma.booking.findMany({
+    const bookings = await this.prisma.booking.findMany({
       where,
       include: BOOKING_INCLUDE,
       orderBy: { scheduledAt: 'desc' },
     });
+    return bookings.map((b) => this.redactRecording(b, role));
   }
 
   // Admin-only: every booking on the platform, for oversight/support.
@@ -151,7 +174,30 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
     this.assertParticipant(booking, userId, role);
-    return booking;
+    return this.redactRecording(booking, role);
+  }
+
+  // Admin-only test helper: until the real 8x8 JaaS recording webhook is
+  // wired up, this is how a recording URL gets attached to a booking so the
+  // paid-download flow can be exercised end to end.
+  async setRecordingUrl(
+    adminId: string,
+    bookingId: string,
+    dto: SetRecordingUrlDto,
+  ) {
+    const booking = await this.requireBooking(bookingId);
+    const result = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { recordingUrl: dto.recordingUrl },
+      include: BOOKING_INCLUDE,
+    });
+    await this.auditLog.record(
+      adminId,
+      'BOOKING_RECORDING_URL_SET',
+      'Booking',
+      booking.id,
+    );
+    return result;
   }
 
   async accept(id: string, tutorId: string) {

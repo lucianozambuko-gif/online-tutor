@@ -11,7 +11,14 @@ import { PaymentMethod, PaymentStatus } from '../prisma/prisma-enums';
 import { generatePayfastSignature, getPayfastBaseUrl } from './payfast.util';
 import { callRefundApi } from './payfast-management-api.util';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
+
+// Recording downloads are chosen at the same time as paying for the session,
+// not a later purchase — see InitiatePaymentDto. The fee is pure platform
+// profit (added to platformFee, never to tutorPayoutAmount): the tutor isn't
+// paid extra for Lumen hosting a downloadable copy of their session.
+export const RECORDING_FEE_MARKUP = 0.3;
 
 // Sentinel payfastRef for payments an admin force-marked paid for testing
 // (e.g. exercising a real tutor's booking flow without real money moving).
@@ -49,7 +56,11 @@ export class PaymentsService {
     });
   }
 
-  async initiate(bookingId: string, studentId: string) {
+  async initiate(
+    bookingId: string,
+    studentId: string,
+    dto: InitiatePaymentDto,
+  ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: { payment: true, student: true },
@@ -71,6 +82,24 @@ export class PaymentsService {
       );
     }
 
+    let payment = booking.payment;
+    // Only add the fee once — a second call with wantsRecording still true
+    // (e.g. the student navigating back to retry payment) must not keep
+    // layering it on top of an already-adjusted amount.
+    if (dto.wantsRecording && !payment.recordingRequested) {
+      const recordingFee =
+        Math.round(Number(payment.amount) * RECORDING_FEE_MARKUP * 100) / 100;
+      payment = await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          amount: Number(payment.amount) + recordingFee,
+          platformFee: Number(payment.platformFee) + recordingFee,
+          recordingRequested: true,
+          recordingFee,
+        },
+      });
+    }
+
     const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
     const apiPublicUrl =
       process.env.API_PUBLIC_URL ??
@@ -86,9 +115,11 @@ export class PaymentsService {
       name_first: firstName,
       name_last: rest.join(' ') || firstName,
       email_address: booking.student.email,
-      m_payment_id: booking.payment.id,
-      amount: Number(booking.payment.amount).toFixed(2),
-      item_name: `Tutoring session: ${booking.subject}`,
+      m_payment_id: payment.id,
+      amount: Number(payment.amount).toFixed(2),
+      item_name: payment.recordingRequested
+        ? `Tutoring session + recording download: ${booking.subject}`
+        : `Tutoring session: ${booking.subject}`,
     };
 
     const signature = generatePayfastSignature(

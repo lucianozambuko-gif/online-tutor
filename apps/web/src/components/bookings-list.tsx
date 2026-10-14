@@ -32,6 +32,11 @@ function StarIcon({ filled }: { filled: boolean }) {
 const EARLY_JOIN_MIN = 15;
 const LATE_JOIN_MIN = 30;
 
+// Must match RECORDING_FEE_MARKUP in apps/api/src/payments/payments.service.ts —
+// only used here to preview the add-on price before paying; the server is
+// what actually calculates and charges it.
+const RECORDING_FEE_MARKUP = 0.3;
+
 function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString();
 }
@@ -63,6 +68,7 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
   const [submittingReviewId, setSubmittingReviewId] = useState<string | null>(null);
   const [expandedMessagesId, setExpandedMessagesId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [recordingChoices, setRecordingChoices] = useState<Record<string, boolean>>({});
 
   // Re-checks the join window every 30s so "Join session" activates on its
   // own right when it opens, without the tutor/student needing to refresh.
@@ -98,7 +104,7 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
     setActingOn(bookingId);
     setError(null);
     try {
-      const { actionUrl, fields } = await initiatePayment(bookingId);
+      const { actionUrl, fields } = await initiatePayment(bookingId, recordingChoices[bookingId]);
       redirectToPayfast(actionUrl, fields);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");
@@ -200,11 +206,45 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                       </button>
                     </>
                   )}
-                  {role === "STUDENT" && b.payment?.status === "PENDING" && (
+                  {role === "STUDENT" && b.payment?.status === "PENDING" && b.mode === "ONLINE" && (
+                    <div className="flex flex-col items-end gap-1.5">
+                      <label className="flex items-center gap-1.5 text-xs text-ink-500">
+                        <input
+                          type="checkbox"
+                          checked={recordingChoices[b.id] ?? false}
+                          onChange={(e) =>
+                            setRecordingChoices((prev) => ({ ...prev, [b.id]: e.target.checked }))
+                          }
+                        />
+                        Add recording download (+R
+                        {(Number(b.payment.amount) * RECORDING_FEE_MARKUP).toFixed(2)})
+                      </label>
+                      <button disabled={busy} onClick={() => handlePay(b.id)} className={buttonClass("gold")}>
+                        Pay
+                      </button>
+                    </div>
+                  )}
+                  {role === "STUDENT" && b.payment?.status === "PENDING" && b.mode === "IN_PERSON" && (
                     <button disabled={busy} onClick={() => handlePay(b.id)} className={buttonClass("gold")}>
                       Pay
                     </button>
                   )}
+                  {b.payment?.status === "PAID" && b.payment.recordingRequested && b.recordingUrl && (
+                    <a
+                      href={b.recordingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={buttonClass("outline")}
+                    >
+                      Download recording
+                    </a>
+                  )}
+                  {role === "STUDENT" &&
+                    b.payment?.status === "PAID" &&
+                    b.payment.recordingRequested &&
+                    !b.recordingUrl && (
+                      <span className="text-xs text-ink-300">Recording not ready yet</span>
+                    )}
                   {(b.status === "PENDING" || b.status === "CONFIRMED") && (
                     <button
                       disabled={busy}
