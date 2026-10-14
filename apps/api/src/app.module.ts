@@ -25,6 +25,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { EmailModule } from './email/email.module';
 import { MessagesModule } from './messages/messages.module';
+import { MeetingsModule } from './meetings/meetings.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { MessagesModule } from './messages/messages.module';
     ReviewsModule,
     AuditLogModule,
     MessagesModule,
+    MeetingsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

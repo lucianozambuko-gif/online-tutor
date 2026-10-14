@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   acceptBooking,
   cancelBooking,
@@ -128,20 +129,16 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {b.status === "CONFIRMED" && b.mode === "ONLINE" && b.meetingUrl && (
+                  {b.status === "CONFIRMED" && b.mode === "ONLINE" && (
                     <div className="flex flex-col items-start gap-1">
-                      <a
-                        href={b.meetingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        href={`/${role === "TUTOR" ? "tutor" : "student"}/session/${b.id}`}
                         className={buttonClass("gold")}
                       >
-                        Join meeting
-                      </a>
+                        Join session
+                      </Link>
                       <span className="max-w-[220px] text-[11px] leading-snug text-ink-300">
-                        {role === "TUTOR"
-                          ? 'First time in the room, click "Log-in" there (e.g. with Google, free) so you\'re the host.'
-                          : "If it says waiting for a moderator, your tutor just needs to join and log in first."}
+                        Opens 15 minutes before the start time, right here in Lumen.
                       </span>
                     </div>
                   )}

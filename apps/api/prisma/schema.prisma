@@ -362,8 +362,12 @@ model Booking {
   status          BookingStatus @default(PENDING)
   sessionNotesUrl String?
   recordingUrl    String?
-  // Auto-generated Jitsi Meet room for ONLINE bookings, set at creation time.
+  // Legacy public meet.jit.si link from before the 8x8 JaaS integration.
+  // New bookings leave it null; online sessions open at /<portal>/session/<id>.
   meetingUrl      String?
+  // Set from JaaS ROOM_CREATED / ROOM_DESTROYED webhooks.
+  meetingStartedAt DateTime?
+  meetingEndedAt   DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -373,6 +377,27 @@ model Booking {
   disputes     Dispute[]
   issueReports IssueReport[]
   tutorNotes   TutorNote[]
+  meetingEvents MeetingEvent[]
+}
+
+// Raw 8x8 JaaS webhook events for a booking's video room. Attendance minutes
+// per person are computed from the PARTICIPANT_JOINED / PARTICIPANT_LEFT pairs.
+model MeetingEvent {
+  id             String   @id @default(cuid())
+  // JaaS retries deliveries; this keeps each event stored once.
+  idempotencyKey String   @unique
+  bookingId      String
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  // ROOM_CREATED | PARTICIPANT_JOINED | PARTICIPANT_LEFT | ROOM_DESTROYED
+  type           String
+  // Lumen user id (we sign it into the JaaS JWT as context.user.id)
+  userId         String?
+  isModerator    Boolean  @default(false)
+  occurredAt     DateTime
+  payload        Json
+  createdAt      DateTime @default(now())
+
+  @@index([bookingId, occurredAt])
 }
 
 // A tutor's own notes on a student's progress — separate from the student's

@@ -249,6 +249,33 @@ export function listBookings(): Promise<Booking[]> {
   return apiFetch("/bookings");
 }
 
+export interface MeetingToken {
+  domain: string;
+  /** "<JaaS appId>/lumen-<bookingId>" */
+  roomName: string;
+  jwt: string;
+  role: "tutor" | "student";
+  subject: string;
+  otherPartyName: string;
+  endsAt: string;
+}
+
+export function getMeetingToken(bookingId: string): Promise<MeetingToken> {
+  return apiFetch(`/meetings/${bookingId}/token`);
+}
+
+export interface MeetingAttendance {
+  bookingId: string;
+  tutorMinutes: number;
+  studentMinutes: number;
+  meetingStartedAt: string | null;
+  meetingEndedAt: string | null;
+}
+
+export function getMeetingAttendance(bookingId: string): Promise<MeetingAttendance> {
+  return apiFetch(`/meetings/${bookingId}/attendance`);
+}
+
 export function acceptBooking(id: string): Promise<Booking> {
   return apiFetch(`/bookings/${id}/accept`, { method: "PATCH" });
 }
