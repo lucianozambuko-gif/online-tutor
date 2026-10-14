@@ -19,6 +19,12 @@ const EARLY_JOIN_MIN = 15;
 // …and stays joinable this long after the scheduled end.
 const LATE_JOIN_MIN = 30;
 
+const SA_DATETIME = new Intl.DateTimeFormat('en-ZA', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Africa/Johannesburg',
+});
+
 @Controller('meetings')
 @UseGuards(JwtAuthGuard)
 export class MeetingsController {
@@ -72,7 +78,7 @@ export class MeetingsController {
 
     if (now < opens) {
       throw new BadRequestException(
-        `The room opens ${EARLY_JOIN_MIN} minutes before the session (${booking.scheduledAt.toISOString()})`,
+        `The room opens ${EARLY_JOIN_MIN} minutes before the session (${SA_DATETIME.format(booking.scheduledAt)})`,
       );
     }
     if (now > closes) throw new BadRequestException('This session has ended');

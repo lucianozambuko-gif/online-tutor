@@ -26,6 +26,33 @@ function StarIcon({ filled }: { filled: boolean }) {
   );
 }
 
+// Must match EARLY_JOIN_MIN / LATE_JOIN_MIN in apps/api/src/meetings/meetings.controller.ts —
+// the backend is the source of truth and will reject outside this window regardless, but
+// mirroring it here lets the button only appear once it'll actually work.
+const EARLY_JOIN_MIN = 15;
+const LATE_JOIN_MIN = 30;
+
+function isSameDay(a: Date, b: Date) {
+  return a.toDateString() === b.toDateString();
+}
+
+function formatJoinTime(date: Date, now: Date) {
+  const time = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (isSameDay(date, now)) return `today at ${time}`;
+  return `${date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })} at ${time}`;
+}
+
+function getJoinWindow(booking: Booking, now: Date): "before" | "open" | "after" {
+  const start = new Date(booking.scheduledAt).getTime();
+  const end = start + booking.durationMinutes * 60_000;
+  const opens = start - EARLY_JOIN_MIN * 60_000;
+  const closes = end + LATE_JOIN_MIN * 60_000;
+  const t = now.getTime();
+  if (t < opens) return "before";
+  if (t > closes) return "after";
+  return "open";
+}
+
 export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -35,6 +62,14 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
   const [reviewForms, setReviewForms] = useState<Record<string, { rating: number; comment: string }>>({});
   const [submittingReviewId, setSubmittingReviewId] = useState<string | null>(null);
   const [expandedMessagesId, setExpandedMessagesId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  // Re-checks the join window every 30s so "Join session" activates on its
+  // own right when it opens, without the tutor/student needing to refresh.
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   function load() {
     listBookings()
@@ -129,7 +164,7 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {b.status === "CONFIRMED" && b.mode === "ONLINE" && (
+                  {b.status === "CONFIRMED" && b.mode === "ONLINE" && getJoinWindow(b, now) === "open" && (
                     <div className="flex flex-col items-start gap-1">
                       <Link
                         href={`/${role === "TUTOR" ? "tutor" : "student"}/session/${b.id}`}
@@ -138,9 +173,14 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                         Join session
                       </Link>
                       <span className="max-w-[220px] text-[11px] leading-snug text-ink-300">
-                        Opens 15 minutes before the start time, right here in Lumen.
+                        Right here in Lumen — no extra login needed.
                       </span>
                     </div>
+                  )}
+                  {b.status === "CONFIRMED" && b.mode === "ONLINE" && getJoinWindow(b, now) === "before" && (
+                    <span className="max-w-[200px] text-right text-xs text-ink-300">
+                      Opens {formatJoinTime(new Date(b.scheduledAt), now)}
+                    </span>
                   )}
                   {role === "TUTOR" && b.status === "PENDING" && (
                     <>
