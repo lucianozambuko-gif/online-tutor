@@ -55,11 +55,63 @@ function XIcon() {
   );
 }
 
-function SparkleIcon() {
+function SparkleIcon({ size = 28 }: { size?: number }) {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3l1.4 4.3L18 8.7l-4.6 1.4L12 14.4l-1.4-4.3L6 8.7l4.6-1.4z" />
     </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+function SpeakerIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 9v6h4l5 4V5L8 9H4z" />
+      <path d="M17 8.5a4.5 4.5 0 0 1 0 7" />
+    </svg>
+  );
+}
+
+function ThumbUpIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0 4.5-7a2 2 0 0 1 3.5 1.4V9h4.2a2 2 0 0 1 1.9 2.6l-2.1 7A2 2 0 0 1 17.1 20H7" />
+    </svg>
+  );
+}
+
+function ThumbDownIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 14V3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3zm0 0-4.5 7a2 2 0 0 1-3.5-1.4V15H4.8a2 2 0 0 1-1.9-2.6l2.1-7A2 2 0 0 1 6.9 4H17" />
+    </svg>
+  );
+}
+
+function ThinkingDots() {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-300 [animation-delay:-0.3s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-300 [animation-delay:-0.15s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-300" />
+    </span>
   );
 }
 
@@ -75,6 +127,8 @@ export function AiHelperChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionSummary | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, "up" | "down">>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
@@ -245,6 +299,28 @@ export function AiHelperChat() {
     imageInputRef.current?.click();
   }
 
+  function handleCopy(id: string, content: string) {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
+    });
+  }
+
+  function handleReadAloud(content: string) {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(content));
+  }
+
+  function handleFeedback(id: string, vote: "up" | "down") {
+    setFeedback((prev) => {
+      const next = { ...prev };
+      if (next[id] === vote) delete next[id];
+      else next[id] = vote;
+      return next;
+    });
+  }
+
   function handleAttachDocumentClick() {
     if (atFileLimit) {
       setError(`Your plan allows up to ${maxFiles} file${maxFiles === 1 ? "" : "s"} per message.`);
@@ -275,47 +351,113 @@ export function AiHelperChat() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                  m.role === "USER"
-                    ? "self-end whitespace-pre-wrap bg-sky-600 text-white"
-                    : "self-start bg-white text-ink-700 shadow-sm"
-                }`}
-              >
-                {m.attachments && m.attachments.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    {m.attachments.map((att, i) =>
-                      att.kind === "IMAGE" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={i}
-                          src={att.previewUrl ?? `data:${att.mimeType};base64,${att.data}`}
-                          alt="Attached"
-                          className="max-h-48 rounded-lg border border-white/20 object-contain"
-                        />
-                      ) : (
-                        <span
-                          key={i}
-                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
-                            m.role === "USER" ? "border-white/25 text-white/90" : "border-ink-700/15 text-ink-500"
-                          }`}
-                        >
-                          <PaperclipIcon />
-                          {att.name}
-                        </span>
-                      ),
-                    )}
+          <div className="flex flex-col gap-4">
+            {messages.map((m) => {
+              const attachmentsBlock = m.attachments && m.attachments.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {m.attachments.map((att, i) =>
+                    att.kind === "IMAGE" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={i}
+                        src={att.previewUrl ?? `data:${att.mimeType};base64,${att.data}`}
+                        alt="Attached"
+                        className="max-h-48 rounded-lg border border-white/20 object-contain"
+                      />
+                    ) : (
+                      <span
+                        key={i}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                          m.role === "USER" ? "border-white/25 text-white/90" : "border-ink-700/15 text-ink-500"
+                        }`}
+                      >
+                        <PaperclipIcon />
+                        {att.name}
+                      </span>
+                    ),
+                  )}
+                </div>
+              );
+
+              if (m.role === "USER") {
+                return (
+                  <div
+                    key={m.id}
+                    className="max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-sky-600 px-4 py-2.5 text-sm text-white"
+                  >
+                    {attachmentsBlock}
+                    {m.content}
                   </div>
-                )}
-                {m.content && (m.role === "USER" ? m.content : <MarkdownContent content={m.content} />)}
-              </div>
-            ))}
+                );
+              }
+
+              // AI replies: no bubble, a labeled avatar row instead — closer to
+              // a normal document than a chat bubble, since answers are often
+              // long/formatted (lists, bold terms, etc.) and read better full-width.
+              return (
+                <div key={m.id} className="max-w-[92%] self-start">
+                  <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-ink-500">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold-300/40 text-gold-600">
+                      <SparkleIcon size={12} />
+                    </span>
+                    Lumen AI
+                  </div>
+                  <div className="text-sm text-ink-700">
+                    {attachmentsBlock}
+                    {m.content && <MarkdownContent content={m.content} />}
+                  </div>
+                  {m.content && (
+                    <div className="mt-1.5 flex items-center gap-1 text-ink-300">
+                      <button
+                        type="button"
+                        onClick={() => handleReadAloud(m.content)}
+                        aria-label="Read aloud"
+                        title="Read aloud"
+                        className="rounded-md p-1.5 transition hover:bg-ink-700/5 hover:text-ink-700"
+                      >
+                        <SpeakerIcon />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(m.id, m.content)}
+                        aria-label="Copy response"
+                        title="Copy"
+                        className="rounded-md p-1.5 transition hover:bg-ink-700/5 hover:text-ink-700"
+                      >
+                        {copiedId === m.id ? <CheckIcon /> : <CopyIcon />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFeedback(m.id, "up")}
+                        aria-label="Good response"
+                        title="Good response"
+                        className={`rounded-md p-1.5 transition hover:bg-ink-700/5 ${feedback[m.id] === "up" ? "text-emerald-600" : "hover:text-ink-700"}`}
+                      >
+                        <ThumbUpIcon filled={feedback[m.id] === "up"} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFeedback(m.id, "down")}
+                        aria-label="Poor response"
+                        title="Poor response"
+                        className={`rounded-md p-1.5 transition hover:bg-ink-700/5 ${feedback[m.id] === "down" ? "text-red-600" : "hover:text-ink-700"}`}
+                      >
+                        <ThumbDownIcon filled={feedback[m.id] === "down"} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {sending && (
-              <div className="self-start rounded-2xl bg-white px-4 py-2.5 text-sm text-ink-300 shadow-sm">
-                Thinking...
+              <div className="self-start">
+                <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-ink-500">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold-300/40 text-gold-600">
+                    <SparkleIcon size={12} />
+                  </span>
+                  Lumen AI
+                </div>
+                <ThinkingDots />
               </div>
             )}
           </div>
