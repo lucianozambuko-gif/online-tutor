@@ -44,6 +44,7 @@ import {
 } from "@/lib/api";
 import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+import { AdminMessagesPanel } from "@/components/admin-messages-panel";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -80,6 +81,7 @@ export default function AdminDashboard() {
   const [refundingPaymentId, setRefundingPaymentId] = useState<string | null>(null);
   const [refundError, setRefundError] = useState<string | null>(null);
   const [markingTestPaidId, setMarkingTestPaidId] = useState<string | null>(null);
+  const [messageUserId, setMessageUserId] = useState<string | null>(null);
 
   const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
@@ -1188,6 +1190,16 @@ export default function AdminDashboard() {
         )}
       </Card>
 
+      <Card>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">Direct messages</h2>
+          <p className="mt-1 text-sm text-ink-500">Message any student or tutor directly, or reply to one who&apos;s messaged you.</p>
+        </div>
+        <div className="mt-4">
+          <AdminMessagesPanel startWithUserId={messageUserId} onStarted={() => setMessageUserId(null)} />
+        </div>
+      </Card>
+
       <Card className="overflow-x-auto">
         <h2 className="font-display text-lg font-semibold text-ink-900">All users</h2>
         {loading ? (
@@ -1222,7 +1234,17 @@ export default function AdminDashboard() {
                       {new Date(u.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-3 pr-4">
-                      {!isSelf && !isDeleted && (
+                      <div className="flex flex-wrap gap-2">
+                        {!isDeleted && u.role !== "ADMIN" && (
+                          <button
+                            type="button"
+                            onClick={() => setMessageUserId(u.id)}
+                            className={buttonClass("outline", "px-3 py-1.5 text-xs")}
+                          >
+                            Message
+                          </button>
+                        )}
+                        {!isSelf && !isDeleted && (
                         <button
                           type="button"
                           disabled={deletingId === u.id}
@@ -1231,7 +1253,8 @@ export default function AdminDashboard() {
                         >
                           Delete
                         </button>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

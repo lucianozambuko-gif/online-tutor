@@ -7,9 +7,19 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { BookingStatus, Role } from '../prisma/prisma-enums';
+import { BookingStatus, Role, UserStatus } from '../prisma/prisma-enums';
 
 const SENDER_SELECT = { id: true, name: true, role: true } as const;
+
+function attachmentFields(attachment?: Express.Multer.File) {
+  return {
+    attachmentData: attachment
+      ? attachment.buffer.toString('base64')
+      : undefined,
+    attachmentMimeType: attachment ? attachment.mimetype : undefined,
+    attachmentName: attachment ? attachment.originalname : undefined,
+  };
+}
 
 @Injectable()
 export class MessagesService {
@@ -90,11 +100,7 @@ export class MessagesService {
         conversationId: conversation.id,
         senderId: userId,
         body: dto.body,
-        attachmentData: attachment
-          ? attachment.buffer.toString('base64')
-          : undefined,
-        attachmentMimeType: attachment ? attachment.mimetype : undefined,
-        attachmentName: attachment ? attachment.originalname : undefined,
+        ...attachmentFields(attachment),
       },
       include: { sender: { select: SENDER_SELECT } },
     });
@@ -141,6 +147,157 @@ export class MessagesService {
           },
         },
       },
+    });
+  }
+
+  // Direct admin<->user conversations aren't tied to a booking (bookingId is
+  // null), which is otherwise unused — safe to key off "has no booking" as
+  // long as this stays the only kind of booking-less conversation.
+  private async getOrCreateDirectConversation(userId: string) {
+    const existing = await this.prisma.conversation.findFirst({
+      where: { bookingId: null, participants: { some: { userId } } },
+    });
+    if (existing) return existing;
+
+    const admins = await this.prisma.user.findMany({
+      where: { role: Role.ADMIN, status: UserStatus.ACTIVE },
+      select: { id: true },
+    });
+    return this.prisma.conversation.create({
+      data: {
+        participants: {
+          create: [
+            { userId },
+            ...admins
+              .filter((a) => a.id !== userId)
+              .map((a) => ({ userId: a.id })),
+          ],
+        },
+      },
+    });
+  }
+
+  // Student/tutor side: their own thread with Lumen admin. Returns [] rather
+  // than creating a conversation on a bare read — nothing to show until
+  // either side has actually sent something.
+  async listMyAdminMessages(userId: string) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { bookingId: null, participants: { some: { userId } } },
+    });
+    if (!conversation) return [];
+
+    return this.prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { sentAt: 'asc' },
+      include: { sender: { select: SENDER_SELECT } },
+    });
+  }
+
+  async sendMyAdminMessage(
+    userId: string,
+    dto: CreateMessageDto,
+    attachment?: Express.Multer.File,
+  ) {
+    if (!dto.body?.trim() && !attachment) {
+      throw new BadRequestException('Message must have text or an attachment');
+    }
+    const conversation = await this.getOrCreateDirectConversation(userId);
+    return this.prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        senderId: userId,
+        body: dto.body,
+        ...attachmentFields(attachment),
+      },
+      include: { sender: { select: SENDER_SELECT } },
+    });
+  }
+
+  // Admin side: every direct conversation, with the other participant and a
+  // preview of the latest message, for an inbox-style list.
+  async adminListConversations() {
+    const conversations = await this.prisma.conversation.findMany({
+      where: { bookingId: null },
+      include: {
+        participants: { include: { user: { select: SENDER_SELECT } } },
+        messages: {
+          orderBy: { sentAt: 'desc' },
+          take: 1,
+          select: { body: true, sentAt: true, attachmentName: true },
+        },
+      },
+    });
+    return conversations
+      .map((c) => ({
+        id: c.id,
+        otherParticipant: c.participants.find((p) => p.user.role !== Role.ADMIN)
+          ?.user,
+        lastMessage: c.messages[0] ?? null,
+      }))
+      .filter((c) => c.otherParticipant)
+      .sort(
+        (a, b) =>
+          (b.lastMessage?.sentAt.getTime() ?? 0) -
+          (a.lastMessage?.sentAt.getTime() ?? 0),
+      );
+  }
+
+  // Admin-only: starts (or returns the existing) direct conversation with a
+  // specific student/tutor, so an admin can initiate contact rather than
+  // only ever replying to someone who messaged first.
+  async adminStartConversation(targetUserId: string) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, role: true },
+    });
+    if (!target) {
+      throw new NotFoundException('User not found');
+    }
+    if (target.role === Role.ADMIN) {
+      throw new BadRequestException(
+        'Cannot start a conversation with another admin',
+      );
+    }
+    return this.getOrCreateDirectConversation(targetUserId);
+  }
+
+  private async requireDirectConversation(conversationId: string) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+    if (!conversation || conversation.bookingId) {
+      throw new NotFoundException('Conversation not found');
+    }
+    return conversation;
+  }
+
+  async adminListMessages(conversationId: string) {
+    await this.requireDirectConversation(conversationId);
+    return this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { sentAt: 'asc' },
+      include: { sender: { select: SENDER_SELECT } },
+    });
+  }
+
+  async adminSendMessage(
+    adminId: string,
+    conversationId: string,
+    dto: CreateMessageDto,
+    attachment?: Express.Multer.File,
+  ) {
+    if (!dto.body?.trim() && !attachment) {
+      throw new BadRequestException('Message must have text or an attachment');
+    }
+    await this.requireDirectConversation(conversationId);
+    return this.prisma.message.create({
+      data: {
+        conversationId,
+        senderId: adminId,
+        body: dto.body,
+        ...attachmentFields(attachment),
+      },
+      include: { sender: { select: SENDER_SELECT } },
     });
   }
 }

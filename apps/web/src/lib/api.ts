@@ -423,6 +423,49 @@ export function listAdminFlaggedMessages(): Promise<AdminFlaggedMessage[]> {
   return apiFetch("/messages/admin/flagged");
 }
 
+// Student/tutor's own direct thread with Lumen admin — not tied to a booking.
+export function listMyAdminMessages(): Promise<BookingMessage[]> {
+  return apiFetch("/messages/me/admin");
+}
+
+export function sendMyAdminMessage(body: string, attachment?: File): Promise<BookingMessage> {
+  if (!attachment) {
+    return apiFetch("/messages/me/admin", { method: "POST", body: JSON.stringify({ body }) });
+  }
+  const form = new FormData();
+  if (body) form.append("body", body);
+  form.append("attachment", attachment);
+  return apiFetch("/messages/me/admin", { method: "POST", body: form });
+}
+
+export interface AdminConversation {
+  id: string;
+  otherParticipant: { id: string; name: string; email: string; role: "STUDENT" | "TUTOR" | "ADMIN" };
+  lastMessage: { body: string | null; sentAt: string; attachmentName: string | null } | null;
+}
+
+export function adminListConversations(): Promise<AdminConversation[]> {
+  return apiFetch("/messages/admin/conversations");
+}
+
+export function adminStartConversation(userId: string): Promise<{ id: string }> {
+  return apiFetch("/messages/admin/conversations", { method: "POST", body: JSON.stringify({ userId }) });
+}
+
+export function adminListMessages(conversationId: string): Promise<BookingMessage[]> {
+  return apiFetch(`/messages/admin/conversations/${conversationId}`);
+}
+
+export function adminSendMessage(conversationId: string, body: string, attachment?: File): Promise<BookingMessage> {
+  if (!attachment) {
+    return apiFetch(`/messages/admin/conversations/${conversationId}`, { method: "POST", body: JSON.stringify({ body }) });
+  }
+  const form = new FormData();
+  if (body) form.append("body", body);
+  form.append("attachment", attachment);
+  return apiFetch(`/messages/admin/conversations/${conversationId}`, { method: "POST", body: form });
+}
+
 export interface TutorReview {
   id: string;
   rating: number;

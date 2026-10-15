@@ -74,6 +74,14 @@ function ProfileIcon() {
   );
 }
 
+function MessagesIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.4 8.4 0 0 1-1 4 8.5 8.5 0 0 1-7.5 4.5 8.4 8.4 0 0 1-4-1L3 21l2-5.5a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 4.5-7.5 8.4 8.4 0 0 1 4-1h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
 function ReportIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -126,6 +134,12 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Earnings", href: "/tutor/earnings", icon: <EarningsIcon />, match: (p) => p.startsWith("/tutor/earnings") },
   { label: "Sessions", href: "/tutor/sessions", icon: <SessionsIcon />, match: (p) => p.startsWith("/tutor/sessions") },
   { label: "Profile", href: "/tutor/profile", icon: <ProfileIcon />, match: (p) => p.startsWith("/tutor/profile") },
+  {
+    label: "Message Lumen",
+    href: "/tutor/messages",
+    icon: <MessagesIcon />,
+    match: (p) => p.startsWith("/tutor/messages"),
+  },
   {
     label: "Report an issue",
     href: "/tutor/report-issue",
