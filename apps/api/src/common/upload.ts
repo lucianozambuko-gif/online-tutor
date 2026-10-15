@@ -67,6 +67,33 @@ const ALLOWED_DOCUMENT_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
 ]);
 
+// Tutor session notes: images (e.g. a worksheet photo, filed for reference
+// only) plus PDF/.docx (whose text gets extracted and actually fed to the AI
+// — see TutorNotesService.generate).
+const ALLOWED_NOTE_ATTACHMENT_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  ...ALLOWED_DOCUMENT_TYPES,
+]);
+
+export const noteAttachmentUploadOptions: MulterOptions = {
+  limits: { fileSize: MAX_UPLOAD_BYTES },
+  fileFilter: (_req, file, callback) => {
+    if (!ALLOWED_NOTE_ATTACHMENT_TYPES.has(file.mimetype)) {
+      callback(
+        new BadRequestException(
+          'Unsupported file type — images, PDF or Word (.docx) only',
+        ),
+        false,
+      );
+      return;
+    }
+    callback(null, true);
+  },
+};
+
 // The AI Helper accepts any mix of images and documents per message (two
 // named, repeatable form fields on one request), each with its own allowed
 // mimetypes — checked here by fieldname since FileFieldsInterceptor only

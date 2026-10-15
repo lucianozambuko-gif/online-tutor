@@ -5,7 +5,8 @@ import { generateTutorNote, ApiError, type RosterEntry, type TutorNote } from "@
 import { Card, Field, inputClass, labelClass, buttonClass, ErrorText } from "@/components/ui";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_ATTACHMENT_TYPES = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
+const ACCEPTED_ATTACHMENT_TYPES =
+  "image/jpeg,image/png,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 interface Props {
   studentId?: string;
@@ -165,7 +166,10 @@ export function TutorNoteForm({ studentId, roster, onCreated }: Props) {
               Attach a file or photo
             </button>
           )}
-          <p className="text-xs text-ink-300">Images or PDFs, up to 5MB — e.g. a worksheet scan.</p>
+          <p className="text-xs text-ink-300">
+            Images, PDF or Word, up to 5MB. For a PDF/Word worksheet or test, the AI reads its content and can
+            reference specifics in the note — a photo is just filed for your reference.
+          </p>
         </div>
 
         {error && <ErrorText>{error}</ErrorText>}

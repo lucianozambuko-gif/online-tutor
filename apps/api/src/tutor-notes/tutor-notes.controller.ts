@@ -18,7 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
-import { attachmentUploadOptions } from '../common/upload';
+import { noteAttachmentUploadOptions } from '../common/upload';
 
 @Controller('tutor-notes')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -27,7 +27,7 @@ export class TutorNotesController {
   constructor(private readonly tutorNotesService: TutorNotesService) {}
 
   @Post('generate')
-  @UseInterceptors(FileInterceptor('attachment', attachmentUploadOptions))
+  @UseInterceptors(FileInterceptor('attachment', noteAttachmentUploadOptions))
   generate(
     @CurrentUser() user: JwtPayload,
     @Body() dto: GenerateTutorNoteDto,

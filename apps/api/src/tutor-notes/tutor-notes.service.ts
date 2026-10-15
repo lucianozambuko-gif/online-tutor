@@ -6,9 +6,15 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { GroqService } from '../groq/groq.service';
 import { GenerateTutorNoteDto } from './dto/generate-tutor-note.dto';
+import { extractDocumentText } from '../common/extract-document-text';
+
+const EXTRACTABLE_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
 
 const SYSTEM_PROMPT =
-  "You help tutors turn rough session notes into a clear, structured progress note about a student, for the tutor's own record-keeping. Use markdown headings and bullet points. Base the note strictly on the tutor's input — never invent facts about the student's performance or behaviour.";
+  "You help tutors turn rough session notes into a clear, structured progress note about a student, for the tutor's own record-keeping. Use markdown headings and bullet points. Base the note strictly on the tutor's input — never invent facts about the student's performance or behaviour. If a document (e.g. a worksheet or test) is attached, you may reference specific items from it (e.g. a particular question the student struggled with) to make the note more concrete.";
 
 @Injectable()
 export class TutorNotesService {
@@ -46,13 +52,22 @@ export class TutorNotesService {
       }
     }
 
+    // PDF/.docx attachments get their text pulled in as extra context (e.g.
+    // a worksheet or test the AI can reference specifics from); a photo
+    // attachment is just filed alongside the note, not readable as text.
+    let documentText: string | null = null;
+    if (attachment && EXTRACTABLE_MIME_TYPES.has(attachment.mimetype)) {
+      documentText = await extractDocumentText(attachment);
+    }
+
+    const userContent = documentText
+      ? `Topic: ${dto.topic}\nTutor's rough notes:\n${dto.rawInput}\n\nAttached document:\n${documentText}`
+      : `Topic: ${dto.topic}\nTutor's rough notes:\n${dto.rawInput}`;
+
     const content = await this.groq.chat(
       [
         { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: `Topic: ${dto.topic}\nTutor's rough notes:\n${dto.rawInput}`,
-        },
+        { role: 'user', content: userContent },
       ],
       { maxTokens: 1000, temperature: 0.4 },
     );
