@@ -408,6 +408,19 @@ export function sendBookingMessage(
   return apiFetch(`/bookings/${bookingId}/messages`, { method: "POST", body: form });
 }
 
+export interface UnreadSummary {
+  totalUnread: number;
+  byBooking: Record<string, number>;
+}
+
+export function getUnreadSummary(): Promise<UnreadSummary> {
+  return apiFetch("/messages/unread-summary");
+}
+
+export function markBookingMessagesRead(bookingId: string): Promise<{ ok: boolean }> {
+  return apiFetch(`/bookings/${bookingId}/messages/read`, { method: "PATCH" });
+}
+
 export function flagMessage(messageId: string): Promise<BookingMessage> {
   return apiFetch(`/messages/${messageId}/flag`, { method: "PATCH" });
 }

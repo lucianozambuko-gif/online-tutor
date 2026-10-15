@@ -538,6 +538,9 @@ model ConversationParticipant {
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   userId         String
   user           User         @relation(fields: [userId], references: [id])
+  // Null until this participant has ever opened the conversation — every
+  // message counts as unread until then. Bumped to now() whenever they view it.
+  lastReadAt     DateTime?
 
   @@unique([conversationId, userId])
 }

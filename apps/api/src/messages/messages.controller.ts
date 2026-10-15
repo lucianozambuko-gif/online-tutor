@@ -31,6 +31,20 @@ export class MessagesController {
     return this.messagesService.list(bookingId, user.sub, user.role);
   }
 
+  @Get('messages/unread-summary')
+  @Roles(Role.STUDENT, Role.TUTOR)
+  getUnreadSummary(@CurrentUser() user: JwtPayload) {
+    return this.messagesService.getUnreadSummary(user.sub);
+  }
+
+  @Patch('bookings/:bookingId/messages/read')
+  markRead(
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.messagesService.markRead(bookingId, user.sub, user.role);
+  }
+
   @Post('bookings/:bookingId/messages')
   @UseInterceptors(FileInterceptor('attachment', attachmentUploadOptions))
   send(

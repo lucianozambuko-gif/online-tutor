@@ -70,6 +70,51 @@ export class MessagesService {
     });
   }
 
+  // Student/tutor side: how many unread messages per booking, plus a total
+  // for a single sidebar indicator. "Unread" = sent by the other side, after
+  // this user last opened that booking's chat (or ever, if they never have).
+  async getUnreadSummary(userId: string) {
+    const participations = await this.prisma.conversationParticipant.findMany({
+      where: { userId, conversation: { bookingId: { not: null } } },
+      select: {
+        lastReadAt: true,
+        conversation: { select: { id: true, bookingId: true } },
+      },
+    });
+
+    const byBooking: Record<string, number> = {};
+    let totalUnread = 0;
+    for (const p of participations) {
+      if (!p.conversation.bookingId) continue;
+      const count = await this.prisma.message.count({
+        where: {
+          conversationId: p.conversation.id,
+          senderId: { not: userId },
+          sentAt: p.lastReadAt ? { gt: p.lastReadAt } : undefined,
+        },
+      });
+      if (count > 0) {
+        byBooking[p.conversation.bookingId] = count;
+        totalUnread += count;
+      }
+    }
+    return { totalUnread, byBooking };
+  }
+
+  async markRead(bookingId: string, userId: string, role: Role) {
+    await this.bookingsService.findOne(bookingId, userId, role);
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { bookingId },
+    });
+    if (!conversation) return { ok: true };
+
+    await this.prisma.conversationParticipant.updateMany({
+      where: { conversationId: conversation.id, userId },
+      data: { lastReadAt: new Date() },
+    });
+    return { ok: true };
+  }
+
   async send(
     bookingId: string,
     userId: string,

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { BrandMark } from "@/components/brand-mark";
+import { getUnreadSummary } from "@/lib/api";
 
 function DashboardIcon() {
   return (
@@ -162,6 +163,18 @@ function initials(name: string) {
 export function TutorSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    function load() {
+      getUnreadSummary()
+        .then((s) => setUnreadCount(s.totalUnread))
+        .catch(() => {});
+    }
+    load();
+    const id = setInterval(load, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div
@@ -201,6 +214,11 @@ export function TutorSidebar({ open = false, onClose }: { open?: boolean; onClos
               >
                 {item.icon}
                 {item.label}
+                {item.label === "Sessions" && unreadCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}

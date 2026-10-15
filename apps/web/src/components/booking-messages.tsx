@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   listBookingMessages,
   sendBookingMessage,
+  markBookingMessagesRead,
   flagMessage,
   ApiError,
   type BookingMessage,
@@ -47,13 +48,36 @@ function DocumentIcon() {
   );
 }
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function dayLabel(iso: string) {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+}
+
+// Groups consecutive messages under one date separator, so the thread reads
+// like "Today / msg / msg — Yesterday / msg" instead of a flat list.
+function groupByDay(messages: BookingMessage[]) {
+  const groups: { label: string; messages: BookingMessage[] }[] = [];
+  for (const m of messages) {
+    const label = dayLabel(m.sentAt);
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.messages.push(m);
+    else groups.push({ label, messages: [m] });
+  }
+  return groups;
 }
 
 export function BookingMessages({ bookingId, currentUserId }: { bookingId: string; currentUserId: string }) {
@@ -74,7 +98,13 @@ export function BookingMessages({ bookingId, currentUserId }: { bookingId: strin
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [bookingId]);
+  // Opening this panel at all counts as reading it — clears the unread
+  // badge on the "Messages" button this lives under.
+  useEffect(() => {
+    load();
+    markBookingMessagesRead(bookingId).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -124,56 +154,76 @@ export function BookingMessages({ bookingId, currentUserId }: { bookingId: strin
 
   return (
     <div className="rounded-xl border border-ink-700/10 bg-cream/50 p-3">
-      <div ref={scrollRef} className="flex h-64 flex-col gap-2 overflow-y-auto p-1">
+      <div ref={scrollRef} className="flex h-80 flex-col gap-3 overflow-y-auto p-1">
         {loading ? (
           <p className="text-sm text-ink-500">Loading messages...</p>
         ) : messages.length === 0 ? (
           <p className="text-sm text-ink-300">No messages yet — say hello.</p>
         ) : (
-          messages.map((m) => {
-            const isMine = m.sender.id === currentUserId;
-            const alreadyFlagged = m.flagged || flaggedIds.has(m.id);
-            return (
-              <div key={m.id} className={`group max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${isMine ? "self-end bg-sky-600 text-white" : "self-start bg-white text-ink-700 shadow-sm"}`}>
-                {m.attachmentData &&
-                  (m.attachmentMimeType?.startsWith("image/") ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
-                      alt={m.attachmentName ?? "Attachment"}
-                      className="mb-1.5 max-h-48 rounded-lg border border-white/20 object-contain"
-                    />
-                  ) : (
-                    <a
-                      href={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
-                      download={m.attachmentName ?? undefined}
-                      className={`mb-1.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
-                        isMine ? "border-white/25 text-white/90 hover:text-white" : "border-ink-700/15 text-ink-500 hover:text-ink-900"
+          groupByDay(messages).map((group) => (
+            <div key={group.label} className="flex flex-col gap-2">
+              <div className="flex items-center justify-center">
+                <span className="rounded-full bg-ink-700/8 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-300">
+                  {group.label}
+                </span>
+              </div>
+              {group.messages.map((m) => {
+                const isMine = m.sender.id === currentUserId;
+                const alreadyFlagged = m.flagged || flaggedIds.has(m.id);
+                return (
+                  <div key={m.id} className={`group flex items-end gap-2 ${isMine ? "flex-row-reverse" : ""}`}>
+                    {!isMine && (
+                      <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-700">
+                        {initials(m.sender.name)}
+                      </span>
+                    )}
+                    <div
+                      className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
+                        isMine ? "bg-sky-600 text-white" : "bg-white text-ink-700 shadow-sm"
                       }`}
                     >
-                      <DocumentIcon />
-                      <span className="truncate">{m.attachmentName ?? "Attachment"}</span>
-                    </a>
-                  ))}
-                {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
-                <div className={`mt-1 flex items-center gap-2 text-[11px] ${isMine ? "text-white/70" : "text-ink-300"}`}>
-                  <span>{formatTime(m.sentAt)}</span>
-                  {!isMine && (
-                    <button
-                      type="button"
-                      onClick={() => handleFlag(m.id)}
-                      disabled={alreadyFlagged}
-                      title="Report this message"
-                      className="inline-flex items-center gap-1 opacity-0 transition hover:text-red-600 group-hover:opacity-100 disabled:opacity-60"
-                    >
-                      <FlagIcon />
-                      {alreadyFlagged ? "Reported" : "Report"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
+                      {m.attachmentData &&
+                        (m.attachmentMimeType?.startsWith("image/") ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
+                            alt={m.attachmentName ?? "Attachment"}
+                            className="mb-1.5 max-h-48 rounded-lg border border-white/20 object-contain"
+                          />
+                        ) : (
+                          <a
+                            href={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
+                            download={m.attachmentName ?? undefined}
+                            className={`mb-1.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                              isMine ? "border-white/25 text-white/90 hover:text-white" : "border-ink-700/15 text-ink-500 hover:text-ink-900"
+                            }`}
+                          >
+                            <DocumentIcon />
+                            <span className="truncate">{m.attachmentName ?? "Attachment"}</span>
+                          </a>
+                        ))}
+                      {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+                      <div className={`mt-1 flex items-center gap-2 text-[11px] ${isMine ? "text-white/70" : "text-ink-300"}`}>
+                        <span>{formatTime(m.sentAt)}</span>
+                        {!isMine && (
+                          <button
+                            type="button"
+                            onClick={() => handleFlag(m.id)}
+                            disabled={alreadyFlagged}
+                            title="Report this message"
+                            className="inline-flex items-center gap-1 opacity-0 transition hover:text-red-600 group-hover:opacity-100 disabled:opacity-60"
+                          >
+                            <FlagIcon />
+                            {alreadyFlagged ? "Reported" : "Report"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))
         )}
       </div>
 

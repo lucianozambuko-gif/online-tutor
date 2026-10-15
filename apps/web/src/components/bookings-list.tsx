@@ -10,6 +10,7 @@ import {
   initiatePayment,
   listBookings,
   createReview,
+  getUnreadSummary,
   ApiError,
   type Booking,
 } from "@/lib/api";
@@ -69,6 +70,21 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
   const [expandedMessagesId, setExpandedMessagesId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [recordingChoices, setRecordingChoices] = useState<Record<string, boolean>>({});
+  const [unreadByBooking, setUnreadByBooking] = useState<Record<string, number>>({});
+
+  function loadUnread() {
+    getUnreadSummary()
+      .then((summary) => setUnreadByBooking(summary.byBooking))
+      .catch(() => {});
+  }
+
+  // Polls rather than pushing — simple and good enough at this scale; picks
+  // up a new message within 30s even if the recipient never leaves the page.
+  useEffect(() => {
+    loadUnread();
+    const id = setInterval(loadUnread, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Re-checks the join window every 30s so "Join session" activates on its
   // own right when it opens, without the tutor/student needing to refresh.
@@ -266,10 +282,25 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                   {b.status !== "CANCELLED" && (
                     <button
                       type="button"
-                      onClick={() => setExpandedMessagesId((prev) => (prev === b.id ? null : b.id))}
-                      className={buttonClass("outline")}
+                      onClick={() => {
+                        const opening = expandedMessagesId !== b.id;
+                        setExpandedMessagesId(opening ? b.id : null);
+                        if (opening && unreadByBooking[b.id]) {
+                          setUnreadByBooking((prev) => {
+                            const next = { ...prev };
+                            delete next[b.id];
+                            return next;
+                          });
+                        }
+                      }}
+                      className={`relative ${buttonClass("outline")}`}
                     >
                       {expandedMessagesId === b.id ? "Hide messages" : "Messages"}
+                      {!!unreadByBooking[b.id] && expandedMessagesId !== b.id && (
+                        <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                          {unreadByBooking[b.id]}
+                        </span>
+                      )}
                     </button>
                   )}
                 </div>
