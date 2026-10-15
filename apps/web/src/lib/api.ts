@@ -381,7 +381,10 @@ export function setBookingRecordingUrl(bookingId: string, recordingUrl: string):
 
 export interface BookingMessage {
   id: string;
-  body: string;
+  body: string | null;
+  attachmentData: string | null;
+  attachmentMimeType: string | null;
+  attachmentName: string | null;
   sentAt: string;
   flagged: boolean;
   sender: { id: string; name: string; role: "STUDENT" | "TUTOR" | "ADMIN" };
@@ -391,8 +394,18 @@ export function listBookingMessages(bookingId: string): Promise<BookingMessage[]
   return apiFetch(`/bookings/${bookingId}/messages`);
 }
 
-export function sendBookingMessage(bookingId: string, body: string): Promise<BookingMessage> {
-  return apiFetch(`/bookings/${bookingId}/messages`, { method: "POST", body: JSON.stringify({ body }) });
+export function sendBookingMessage(
+  bookingId: string,
+  body: string,
+  attachment?: File,
+): Promise<BookingMessage> {
+  if (!attachment) {
+    return apiFetch(`/bookings/${bookingId}/messages`, { method: "POST", body: JSON.stringify({ body }) });
+  }
+  const form = new FormData();
+  if (body) form.append("body", body);
+  form.append("attachment", attachment);
+  return apiFetch(`/bookings/${bookingId}/messages`, { method: "POST", body: form });
 }
 
 export function flagMessage(messageId: string): Promise<BookingMessage> {

@@ -1,8 +1,10 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateMessageDto {
+  // Optional so a message can be attachment-only — MessagesService.send
+  // requires at least one of body/attachment.
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(5000)
-  body: string;
+  body?: string;
 }

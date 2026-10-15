@@ -842,7 +842,17 @@ export default function AdminDashboard() {
                       {new Date(m.conversation.booking.scheduledAt).toLocaleDateString()}
                     </p>
                   )}
-                  <p className="mt-2 text-sm text-ink-900">{m.body}</p>
+                  {m.body && <p className="mt-2 text-sm text-ink-900">{m.body}</p>}
+                  {m.attachmentData && (
+                    <a
+                      href={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-xs font-semibold text-sky-700 hover:text-sky-600"
+                    >
+                      {m.attachmentName ?? "Attachment"} (view)
+                    </a>
+                  )}
                 </li>
               );
             })}

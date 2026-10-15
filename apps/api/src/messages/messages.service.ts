@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -64,7 +65,12 @@ export class MessagesService {
     userId: string,
     role: Role,
     dto: CreateMessageDto,
+    attachment?: Express.Multer.File,
   ) {
+    if (!dto.body?.trim() && !attachment) {
+      throw new BadRequestException('Message must have text or an attachment');
+    }
+
     const booking = await this.bookingsService.findOne(bookingId, userId, role);
 
     if (booking.status === BookingStatus.CANCELLED) {
@@ -84,6 +90,11 @@ export class MessagesService {
         conversationId: conversation.id,
         senderId: userId,
         body: dto.body,
+        attachmentData: attachment
+          ? attachment.buffer.toString('base64')
+          : undefined,
+        attachmentMimeType: attachment ? attachment.mimetype : undefined,
+        attachmentName: attachment ? attachment.originalname : undefined,
       },
       include: { sender: { select: SENDER_SELECT } },
     });

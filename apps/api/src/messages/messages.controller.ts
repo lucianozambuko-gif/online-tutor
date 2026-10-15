@@ -5,8 +5,11 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,6 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '../prisma/prisma-enums';
 import type { JwtPayload } from '../auth/jwt-payload.interface';
+import { attachmentUploadOptions } from '../common/upload';
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -27,12 +31,20 @@ export class MessagesController {
   }
 
   @Post('bookings/:bookingId/messages')
+  @UseInterceptors(FileInterceptor('attachment', attachmentUploadOptions))
   send(
     @Param('bookingId') bookingId: string,
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateMessageDto,
+    @UploadedFile() attachment?: Express.Multer.File,
   ) {
-    return this.messagesService.send(bookingId, user.sub, user.role, dto);
+    return this.messagesService.send(
+      bookingId,
+      user.sub,
+      user.role,
+      dto,
+      attachment,
+    );
   }
 
   // Declared before ':id/flag' would be irrelevant here since the path
