@@ -9,7 +9,7 @@ import { AiMessageRole } from '../prisma/prisma-enums';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { extractDocumentText } from '../common/extract-document-text';
 
-const DEFAULT_VISION_MODEL = 'qwen/qwen3.6-27b';
+const DEFAULT_VISION_MODEL = 'qwen/qwen3.8-27b';
 
 export type AiAttachment =
   | { kind: 'IMAGE'; name: string; mimeType: string; data: string }
