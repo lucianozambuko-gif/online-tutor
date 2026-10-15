@@ -542,8 +542,10 @@ export default function AdminDashboard() {
                   <p className="mt-2 text-xs text-ink-300">
                     {t.tutorProfile.subjects.length > 0 ? t.tutorProfile.subjects.join(", ") : "No subjects listed"} · R
                     {Number(t.tutorProfile.hourlyRate).toFixed(0)}/hr
-                    {t.tutorProfile.gradeLevels.length > 0 &&
-                      ` · ${t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ")}`}
+                    {t.tutorProfile.specificGrades.length > 0
+                      ? ` · ${t.tutorProfile.specificGrades.join(", ")}`
+                      : t.tutorProfile.gradeLevels.length > 0 &&
+                        ` · ${t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ")}`}
                   </p>
                   {t.tutorProfile.transcriptName && (
                     <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-ink-700/8 pt-2.5">

@@ -94,6 +94,10 @@ export const GRADE_LEVEL_LABELS: Record<GradeLevel, string> = {
   VARSITY: "Varsity",
 };
 
+export const PRIMARY_GRADES = ["Grade R", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7"];
+export const HIGH_SCHOOL_GRADES = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
+export const SPECIFIC_GRADES = [...PRIMARY_GRADES, ...HIGH_SCHOOL_GRADES];
+
 export interface TutorSummary {
   id: string;
   name: string;
@@ -101,6 +105,7 @@ export interface TutorSummary {
   tutorProfile: {
     subjects: string[];
     gradeLevels: GradeLevel[];
+    specificGrades: string[];
     qualifications: string[];
     hourlyRate: string;
     bio: string | null;
@@ -134,6 +139,7 @@ export type BankAccountType = "SAVINGS" | "CHEQUE";
 export function updateOwnTutorProfile(data: {
   subjects?: string[];
   gradeLevels?: GradeLevel[];
+  specificGrades?: string[];
   qualifications?: string[];
   bio?: string;
   hourlyRate?: number;
@@ -153,6 +159,7 @@ export interface OwnTutorProfile {
   userId: string;
   subjects: string[];
   gradeLevels: GradeLevel[];
+  specificGrades: string[];
   qualifications: string[];
   hourlyRate: string;
   bio: string | null;
@@ -243,6 +250,7 @@ export interface AdminTutor {
   tutorProfile: {
     subjects: string[];
     gradeLevels: GradeLevel[];
+    specificGrades: string[];
     hourlyRate: string;
     bio: string | null;
     verificationStatus: VerificationStatus;

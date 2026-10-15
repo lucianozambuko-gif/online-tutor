@@ -65,7 +65,10 @@ export default function TutorProfilePage({ params }: PageProps<"/student/tutors/
     return <p className="text-sm text-ink-500">Loading tutor profile...</p>;
   }
 
-  const levels = tutor.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ");
+  const levels =
+    tutor.tutorProfile.specificGrades.length > 0
+      ? tutor.tutorProfile.specificGrades.join(", ")
+      : tutor.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ");
   const rating = tutor.tutorProfile.avgRating ? Number(tutor.tutorProfile.avgRating).toFixed(1) : null;
 
   return (

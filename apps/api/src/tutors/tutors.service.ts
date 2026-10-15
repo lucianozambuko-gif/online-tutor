@@ -21,6 +21,7 @@ const TUTOR_LIST_SELECT = {
     select: {
       subjects: true,
       gradeLevels: true,
+      specificGrades: true,
       qualifications: true,
       hourlyRate: true,
       bio: true,
@@ -142,6 +143,7 @@ export class TutorsService {
           select: {
             subjects: true,
             gradeLevels: true,
+            specificGrades: true,
             hourlyRate: true,
             bio: true,
             verificationStatus: true,

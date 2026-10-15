@@ -315,6 +315,11 @@ model TutorProfile {
   // Which school phases this tutor covers — a South African tutor commonly
   // spans more than one (e.g. High School and Varsity), so it's a set.
   gradeLevels            GradeLevel[]           @default([])
+  // Specific grades within Primary/High School (e.g. "Grade 8", "Grade R") —
+  // optional detail on top of gradeLevels, validated against SPECIFIC_GRADES
+  // in the DTO rather than a Prisma enum so the allowed list can grow without
+  // a migration. Not used for Varsity, which doesn't have numbered grades.
+  specificGrades         String[]               @default([])
   qualifications         String[]
   verificationStatus     VerificationStatus     @default(PENDING)
   idDocumentRef          String?

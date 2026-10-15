@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { listTutors, ApiError, GRADE_LEVEL_LABELS, type TutorSummary, type GradeLevel } from "@/lib/api";
+import { listTutors, ApiError, GRADE_LEVEL_LABELS, PRIMARY_GRADES, HIGH_SCHOOL_GRADES, type TutorSummary, type GradeLevel } from "@/lib/api";
 import { Card, ErrorText, inputClass } from "@/components/ui";
 
-const GRADE_LEVELS: GradeLevel[] = ["PRIMARY", "HIGH_SCHOOL", "VARSITY"];
+// "VARSITY" stands in for the broad Varsity level (which has no numbered
+// grades); every other option is a specific grade string.
+type GradeFilterValue = "" | "VARSITY" | string;
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -18,7 +20,7 @@ export default function TutorsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
-  const [gradeFilter, setGradeFilter] = useState<GradeLevel | "">("");
+  const [gradeFilter, setGradeFilter] = useState<GradeFilterValue>("");
 
   useEffect(() => {
     listTutors()
@@ -38,7 +40,17 @@ export default function TutorsPage() {
     return tutors.filter((t) => {
       if (q && !t.name.toLowerCase().includes(q)) return false;
       if (subjectFilter && !t.tutorProfile.subjects.includes(subjectFilter)) return false;
-      if (gradeFilter && !t.tutorProfile.gradeLevels.includes(gradeFilter)) return false;
+      if (gradeFilter === "VARSITY") {
+        if (!t.tutorProfile.gradeLevels.includes("VARSITY")) return false;
+      } else if (gradeFilter) {
+        const phase: GradeLevel = PRIMARY_GRADES.includes(gradeFilter) ? "PRIMARY" : "HIGH_SCHOOL";
+        if (!t.tutorProfile.gradeLevels.includes(phase)) return false;
+        // A tutor who hasn't narrowed down to specific grades yet is assumed
+        // to cover the whole phase, so don't hide them from this filter.
+        if (t.tutorProfile.specificGrades.length > 0 && !t.tutorProfile.specificGrades.includes(gradeFilter)) {
+          return false;
+        }
+      }
       return true;
     });
   }, [tutors, search, subjectFilter, gradeFilter]);
@@ -76,15 +88,25 @@ export default function TutorsPage() {
           </select>
           <select
             value={gradeFilter}
-            onChange={(e) => setGradeFilter(e.target.value as GradeLevel | "")}
+            onChange={(e) => setGradeFilter(e.target.value)}
             className={`${inputClass} sm:w-auto`}
           >
             <option value="">All grades</option>
-            {GRADE_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {GRADE_LEVEL_LABELS[level]}
-              </option>
-            ))}
+            <optgroup label="Primary">
+              {PRIMARY_GRADES.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="High School">
+              {HIGH_SCHOOL_GRADES.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </optgroup>
+            <option value="VARSITY">{GRADE_LEVEL_LABELS.VARSITY}</option>
           </select>
         </div>
       )}
@@ -105,7 +127,10 @@ export default function TutorsPage() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filteredTutors.map((t) => {
               const rating = t.tutorProfile.avgRating ? Number(t.tutorProfile.avgRating).toFixed(1) : null;
-              const levels = t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ");
+              const levels =
+                t.tutorProfile.specificGrades.length > 0
+                  ? t.tutorProfile.specificGrades.join(", ")
+                  : t.tutorProfile.gradeLevels.map((l) => GRADE_LEVEL_LABELS[l]).join(", ");
               return (
                 <Link key={t.id} href={`/student/tutors/${t.id}`} className="block">
                   <Card className="h-full transition hover:border-sky-400/50 hover:shadow-md">

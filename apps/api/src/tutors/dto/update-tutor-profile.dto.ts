@@ -2,6 +2,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -10,6 +11,7 @@ import {
 } from 'class-validator';
 import { BankAccountType, GradeLevel } from '../../prisma/prisma-enums';
 import { MIN_HOURLY_RATE_ZAR } from '../../common/pricing';
+import { SPECIFIC_GRADES } from '../../common/grades';
 
 export class UpdateTutorProfileDto {
   @IsOptional()
@@ -22,6 +24,12 @@ export class UpdateTutorProfileDto {
   @IsArray()
   @IsEnum(GradeLevel, { each: true })
   gradeLevels?: GradeLevel[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(SPECIFIC_GRADES.length)
+  @IsIn(SPECIFIC_GRADES, { each: true })
+  specificGrades?: string[];
 
   @IsOptional()
   @IsArray()

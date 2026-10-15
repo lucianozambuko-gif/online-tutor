@@ -6,6 +6,8 @@ import {
   ApiError,
   GRADE_LEVEL_LABELS,
   MIN_HOURLY_RATE_ZAR,
+  PRIMARY_GRADES,
+  HIGH_SCHOOL_GRADES,
   type GradeLevel,
   type OwnTutorProfile,
 } from "@/lib/api";
@@ -26,6 +28,7 @@ export function TutorProfileForm({ initial }: { initial: OwnTutorProfile }) {
   const [subjects, setSubjects] = useState<string[]>(initial.subjects);
   const [subjectInput, setSubjectInput] = useState("");
   const [gradeLevels, setGradeLevels] = useState<GradeLevel[]>(initial.gradeLevels);
+  const [specificGrades, setSpecificGrades] = useState<string[]>(initial.specificGrades);
   const [hourlyRate, setHourlyRate] = useState(initial.hourlyRate);
   const [bio, setBio] = useState(initial.bio ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +57,20 @@ export function TutorProfileForm({ initial }: { initial: OwnTutorProfile }) {
   }
 
   function toggleGradeLevel(level: GradeLevel) {
-    setGradeLevels((prev) => (prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]));
+    setGradeLevels((prev) => {
+      const next = prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level];
+      // Deselecting Primary/High School drops any specific grades tied to it,
+      // so the two stay consistent instead of leaving orphaned grade tags.
+      if (prev.includes(level) && level !== "VARSITY") {
+        const dropped = level === "PRIMARY" ? PRIMARY_GRADES : HIGH_SCHOOL_GRADES;
+        setSpecificGrades((grades) => grades.filter((g) => !dropped.includes(g)));
+      }
+      return next;
+    });
+  }
+
+  function toggleSpecificGrade(grade: string) {
+    setSpecificGrades((prev) => (prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -66,6 +82,7 @@ export function TutorProfileForm({ initial }: { initial: OwnTutorProfile }) {
       await updateOwnTutorProfile({
         subjects,
         gradeLevels,
+        specificGrades,
         hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
         bio: bio || undefined,
       });
@@ -139,6 +156,59 @@ export function TutorProfileForm({ initial }: { initial: OwnTutorProfile }) {
             })}
           </div>
         </div>
+
+        {(gradeLevels.includes("PRIMARY") || gradeLevels.includes("HIGH_SCHOOL")) && (
+          <div className="sm:col-span-2">
+            <span className={labelClass}>Specific grades</span>
+            <div className="mt-1.5 flex flex-col gap-3">
+              {gradeLevels.includes("PRIMARY") && (
+                <div className="flex flex-wrap gap-2">
+                  {PRIMARY_GRADES.map((grade) => {
+                    const active = specificGrades.includes(grade);
+                    return (
+                      <button
+                        key={grade}
+                        type="button"
+                        onClick={() => toggleSpecificGrade(grade)}
+                        aria-pressed={active}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                          active
+                            ? "bg-sky-600 text-white shadow-sm"
+                            : "border border-ink-700/15 bg-white text-ink-500 hover:border-sky-400/50 hover:text-ink-900"
+                        }`}
+                      >
+                        {grade}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {gradeLevels.includes("HIGH_SCHOOL") && (
+                <div className="flex flex-wrap gap-2">
+                  {HIGH_SCHOOL_GRADES.map((grade) => {
+                    const active = specificGrades.includes(grade);
+                    return (
+                      <button
+                        key={grade}
+                        type="button"
+                        onClick={() => toggleSpecificGrade(grade)}
+                        aria-pressed={active}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                          active
+                            ? "bg-sky-600 text-white shadow-sm"
+                            : "border border-ink-700/15 bg-white text-ink-500 hover:border-sky-400/50 hover:text-ink-900"
+                        }`}
+                      >
+                        {grade}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs text-ink-300">Optional — narrow down to the exact grades you tutor.</p>
+          </div>
+        )}
 
         <Field label="Hourly rate (ZAR)" htmlFor="hourlyRate" hint={`Minimum R${MIN_HOURLY_RATE_ZAR}/hr.`}>
           <input
