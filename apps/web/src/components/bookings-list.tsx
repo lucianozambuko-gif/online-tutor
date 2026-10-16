@@ -68,6 +68,7 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
   const [reviewForms, setReviewForms] = useState<Record<string, { rating: number; comment: string }>>({});
   const [submittingReviewId, setSubmittingReviewId] = useState<string | null>(null);
   const [expandedMessagesId, setExpandedMessagesId] = useState<string | null>(null);
+  const [expandedRecordingId, setExpandedRecordingId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [recordingChoices, setRecordingChoices] = useState<Record<string, boolean>>({});
   const [unreadByBooking, setUnreadByBooking] = useState<Record<string, number>>({});
@@ -245,7 +246,7 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                       Pay
                     </button>
                   )}
-                  {b.payment?.status === "PAID" && b.payment.recordingRequested && b.recordingUrl && (
+                  {role === "STUDENT" && b.status === "COMPLETED" && b.payment?.status === "PAID" && b.payment.recordingRequested && b.recordingUrl && (
                     <a
                       href={b.recordingUrl}
                       target="_blank"
@@ -256,11 +257,21 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
                     </a>
                   )}
                   {role === "STUDENT" &&
+                    b.status === "COMPLETED" &&
                     b.payment?.status === "PAID" &&
                     b.payment.recordingRequested &&
                     !b.recordingUrl && (
                       <span className="text-xs text-ink-300">Recording not ready yet</span>
                     )}
+                  {role === "TUTOR" && b.status === "COMPLETED" && b.recordingUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedRecordingId((id) => (id === b.id ? null : b.id))}
+                      className={buttonClass("outline")}
+                    >
+                      {expandedRecordingId === b.id ? "Hide recording" : "View recording"}
+                    </button>
+                  )}
                   {(b.status === "PENDING" || b.status === "CONFIRMED") && (
                     <button
                       disabled={busy}
@@ -309,6 +320,27 @@ export function BookingsList({ role }: { role: "STUDENT" | "TUTOR" }) {
               {expandedMessagesId === b.id && user && (
                 <div className="mt-3 border-t border-ink-700/8 pt-3">
                   <BookingMessages bookingId={b.id} currentUserId={user.id} />
+                </div>
+              )}
+
+              {expandedRecordingId === b.id && b.recordingUrl && (
+                <div className="mt-3 border-t border-ink-700/8 pt-3">
+                  <p className="mb-2 text-xs text-ink-300">
+                    Viewing only — download isn&apos;t available here. Only a student who&apos;s paid for the
+                    recording add-on can download it.
+                  </p>
+                  {/* controlsList="nodownload" hides the browser's built-in download
+                      button; the context-menu block stops the easiest right-click save.
+                      Neither is unbreakable (a determined user can still find the URL),
+                      but it removes the obvious download affordance for tutors. */}
+                  <video
+                    src={b.recordingUrl}
+                    controls
+                    controlsList="nodownload noremoteplayback"
+                    disablePictureInPicture
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="w-full rounded-xl bg-ink-900"
+                  />
                 </div>
               )}
 
