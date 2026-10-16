@@ -9,7 +9,7 @@ import {
   ApiError,
   type BookingMessage,
 } from "@/lib/api";
-import { buttonClass, ErrorText, inputClass } from "@/components/ui";
+import { buttonClass, ErrorText } from "@/components/ui";
 
 const ACCEPTED_ATTACHMENT_TYPES = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -154,7 +154,7 @@ export function BookingMessages({ bookingId, currentUserId }: { bookingId: strin
 
   return (
     <div className="rounded-xl border border-ink-700/10 bg-cream/50 p-3">
-      <div ref={scrollRef} className="flex h-80 flex-col gap-3 overflow-y-auto p-1">
+      <div ref={scrollRef} className="flex h-96 flex-col gap-3 overflow-y-auto p-1 sm:h-80">
         {loading ? (
           <p className="text-sm text-ink-500">Loading messages...</p>
         ) : messages.length === 0 ? (
@@ -261,7 +261,10 @@ export function BookingMessages({ bookingId, currentUserId }: { bookingId: strin
           <PaperclipIcon />
         </button>
         <input
-          className={`${inputClass} min-w-0`}
+          // 16px (text-base), not inputClass's text-sm — a sub-16px font on
+          // an input makes iOS Safari auto-zoom the whole page on focus,
+          // which is what made this feel "too small to see" on mobile.
+          className="min-w-0 w-full rounded-lg border border-ink-700/15 bg-white px-3.5 py-2.5 text-base text-ink-900 shadow-sm outline-none transition placeholder:text-ink-300 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30"
           placeholder="Write a message..."
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

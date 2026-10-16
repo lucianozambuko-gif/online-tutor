@@ -15,6 +15,7 @@ import {
 import { Card, ErrorText } from "@/components/ui";
 import { TutorBookingForm } from "@/components/tutor-booking-form";
 import { TutorBusySlots } from "@/components/tutor-busy-slots";
+import { TutorMessagesSection } from "@/components/tutor-messages-section";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -172,6 +173,7 @@ export default function TutorProfilePage({ params }: PageProps<"/student/tutors/
         </div>
 
         <div className="space-y-6">
+          <TutorMessagesSection tutorId={tutor.id} />
           <TutorBookingForm tutorId={tutor.id} subjects={tutor.tutorProfile.subjects} />
           <TutorBusySlots tutorId={tutor.id} />
         </div>
