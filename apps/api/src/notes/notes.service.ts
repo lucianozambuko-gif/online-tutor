@@ -3,6 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GroqService } from '../groq/groq.service';
 import { GenerateNoteDto } from './dto/generate-note.dto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { MessagesService } from '../messages/messages.service';
+import { formatNoteForChat } from '../common/note-export';
+import { Role } from '../prisma/prisma-enums';
 
 const SYSTEM_PROMPT =
   'You write clear, well-structured study notes for school and university students, using markdown headings and bullet points. Base notes strictly on the given topic and any supplied source material — never invent facts. Format any math with $...$ inline or $$...$$ display delimiters.';
@@ -13,6 +16,7 @@ export class NotesService {
     private readonly prisma: PrismaService,
     private readonly groq: GroqService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly messages: MessagesService,
   ) {}
 
   async generate(studentId: string, dto: GenerateNoteDto) {
@@ -69,5 +73,15 @@ export class NotesService {
 
   count(studentId: string) {
     return this.prisma.note.count({ where: { studentId } });
+  }
+
+  // Posts the note's content into the chat of a booking the student is
+  // actually part of — MessagesService.send() does that ownership/access
+  // check itself, so this just needs to confirm the note belongs to them.
+  async share(studentId: string, noteId: string, bookingId: string) {
+    const note = await this.findOne(studentId, noteId);
+    return this.messages.send(bookingId, studentId, Role.STUDENT, {
+      body: formatNoteForChat(note.topic, note.content),
+    });
   }
 }

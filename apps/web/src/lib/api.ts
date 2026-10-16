@@ -568,6 +568,14 @@ export function getNote(id: string): Promise<Note> {
   return apiFetch(`/notes/${id}`);
 }
 
+export function notePdfUrl(id: string): string {
+  return `/api/notes/${id}/pdf`;
+}
+
+export function shareNote(id: string, bookingId: string): Promise<{ id: string }> {
+  return apiFetch(`/notes/${id}/share`, { method: "POST", body: JSON.stringify({ bookingId }) });
+}
+
 export interface FlashcardCard {
   id: string;
   front: string;
@@ -746,6 +754,14 @@ export function listTutorNotes(studentId?: string): Promise<TutorNote[]> {
 
 export function getTutorNote(id: string): Promise<TutorNote> {
   return apiFetch(`/tutor-notes/${id}`);
+}
+
+export function tutorNotePdfUrl(id: string): string {
+  return `/api/tutor-notes/${id}/pdf`;
+}
+
+export function shareTutorNote(id: string, bookingId: string): Promise<{ id: string }> {
+  return apiFetch(`/tutor-notes/${id}/share`, { method: "POST", body: JSON.stringify({ bookingId }) });
 }
 
 export type PayoutStatus = "PENDING" | "PAID" | "FAILED";

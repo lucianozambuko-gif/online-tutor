@@ -424,7 +424,9 @@ model TutorNote {
   topic     String
   content   String
   // An optional file/photo the tutor attaches alongside the note (e.g. a
-  // worksheet scan) — reference material only, not read by the AI.
+  // worksheet scan). A PDF/.docx attachment's text is read by the AI when
+  // generating the note (see TutorNotesService.generate); an image is just
+  // filed for reference.
   attachmentData     String?
   attachmentMimeType String?
   attachmentName     String?

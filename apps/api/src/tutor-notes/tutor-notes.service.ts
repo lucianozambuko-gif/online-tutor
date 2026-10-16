@@ -7,6 +7,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GroqService } from '../groq/groq.service';
 import { GenerateTutorNoteDto } from './dto/generate-tutor-note.dto';
 import { extractDocumentText } from '../common/extract-document-text';
+import { formatNoteForChat } from '../common/note-export';
+import { MessagesService } from '../messages/messages.service';
+import { Role } from '../prisma/prisma-enums';
 
 const EXTRACTABLE_MIME_TYPES = new Set([
   'application/pdf',
@@ -21,6 +24,7 @@ export class TutorNotesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly groq: GroqService,
+    private readonly messages: MessagesService,
   ) {}
 
   private async assertHasTutored(tutorId: string, studentId: string) {
@@ -106,5 +110,29 @@ export class TutorNotesService {
       throw new NotFoundException('Note not found');
     }
     return note;
+  }
+
+  // Posts the note's content — and its attachment, if any — into the chat of
+  // a booking the tutor is actually part of. MessagesService.send() does
+  // that ownership/access check itself, so this just needs to confirm the
+  // note belongs to this tutor.
+  async share(tutorId: string, noteId: string, bookingId: string) {
+    const note = await this.findOne(tutorId, noteId);
+    const attachment =
+      note.attachmentData && note.attachmentMimeType
+        ? ({
+            buffer: Buffer.from(note.attachmentData, 'base64'),
+            mimetype: note.attachmentMimeType,
+            originalname: note.attachmentName ?? 'attachment',
+          } as Express.Multer.File)
+        : undefined;
+
+    return this.messages.send(
+      bookingId,
+      tutorId,
+      Role.TUTOR,
+      { body: formatNoteForChat(note.topic, note.content) },
+      attachment,
+    );
   }
 }

@@ -2,19 +2,24 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { getNote, ApiError, type Note } from "@/lib/api";
+import { getNote, listBookings, shareNote, notePdfUrl, ApiError, type Note, type Booking } from "@/lib/api";
 import { Card, buttonClass, ErrorText } from "@/components/ui";
 import { MarkdownContent } from "@/components/markdown-content";
+import { ShareNoteButton } from "@/components/share-note-button";
 
 export default function NoteDetailPage({ params }: PageProps<"/student/notes/[id]">) {
   const { id } = use(params);
   const [note, setNote] = useState<Note | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getNote(id)
       .then(setNote)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load this note."));
+    listBookings()
+      .then(setBookings)
+      .catch(() => {});
   }, [id]);
 
   if (error) {
@@ -47,18 +52,29 @@ export default function NoteDetailPage({ params }: PageProps<"/student/notes/[id
             {note.subject ?? "General"} &middot; {new Date(note.createdAt).toLocaleDateString()}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href={`/student/flashcards/generate?noteId=${note.id}`} className={buttonClass("gold")}>
             Make flashcards
           </Link>
           <Link href={`/student/quizzes/generate?noteId=${note.id}`} className={buttonClass("outline")}>
             Make a quiz
           </Link>
+          <a href={notePdfUrl(note.id)} className={buttonClass("outline")}>
+            Download PDF
+          </a>
         </div>
       </div>
 
       <Card className="mt-6">
         <MarkdownContent content={note.content} />
+      </Card>
+
+      <Card className="mt-4">
+        <h2 className="font-display text-base font-semibold text-ink-900">Share with a tutor</h2>
+        <p className="mt-1 text-sm text-ink-500">Sends this note into the chat of a session you pick.</p>
+        <div className="mt-3">
+          <ShareNoteButton bookings={bookings} counterpart="tutor" onShare={(bookingId) => shareNote(note.id, bookingId).then(() => {})} />
+        </div>
       </Card>
     </div>
   );
