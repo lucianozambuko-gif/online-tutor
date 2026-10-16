@@ -95,7 +95,16 @@ export class MeetingsController {
           id: me.id,
           name: me.name,
           email: me.email,
-          avatar: me.avatarUrl ?? undefined,
+          // Avatars are stored as base64 data URIs (no external image host),
+          // so embedding one here would bloat the JWT by tens of KB — JaaS's
+          // iframe puts this token in the room URL, and that's exactly what
+          // was blowing past the URL length limit with a "414 Request-URI
+          // Too Large" on join. A data: URI is never useful to JaaS anyway
+          // (it expects a fetchable image URL), so just drop it.
+          avatar:
+            me.avatarUrl && !me.avatarUrl.startsWith('data:')
+              ? me.avatarUrl
+              : undefined,
           moderator: isTutor,
         },
         Math.max(600, Math.floor((closes - now) / 1000)),
