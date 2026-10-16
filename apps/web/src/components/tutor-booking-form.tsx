@@ -5,8 +5,8 @@ import Link from "next/link";
 import { createBooking, ApiError } from "@/lib/api";
 import { Card, Field, inputClass, buttonClass, ErrorText } from "@/components/ui";
 
-export function TutorBookingForm({ tutorId }: { tutorId: string }) {
-  const [subject, setSubject] = useState("");
+export function TutorBookingForm({ tutorId, subjects }: { tutorId: string; subjects: string[] }) {
+  const [subject, setSubject] = useState(subjects[0] ?? "");
   const [scheduledAt, setScheduledAt] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [mode, setMode] = useState<"ONLINE" | "IN_PERSON">("ONLINE");
@@ -54,7 +54,17 @@ export function TutorBookingForm({ tutorId }: { tutorId: string }) {
       <form onSubmit={handleSubmit} className="mt-5 grid gap-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <Field label="Subject" htmlFor="subject">
-            <input id="subject" required className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} />
+            {subjects.length > 0 ? (
+              <select id="subject" required className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)}>
+                {subjects.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input id="subject" required className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} />
+            )}
           </Field>
         </div>
         <Field label="Date & time" htmlFor="scheduledAt">
