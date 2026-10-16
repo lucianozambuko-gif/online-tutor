@@ -760,8 +760,8 @@ export function tutorNotePdfUrl(id: string): string {
   return `/api/tutor-notes/${id}/pdf`;
 }
 
-export function shareTutorNote(id: string, bookingId: string): Promise<{ id: string }> {
-  return apiFetch(`/tutor-notes/${id}/share`, { method: "POST", body: JSON.stringify({ bookingId }) });
+export function shareTutorNoteBulk(id: string, studentIds: string[]): Promise<{ sent: string[]; skipped: string[] }> {
+  return apiFetch(`/tutor-notes/${id}/share-bulk`, { method: "POST", body: JSON.stringify({ studentIds }) });
 }
 
 export type PayoutStatus = "PENDING" | "PAID" | "FAILED";

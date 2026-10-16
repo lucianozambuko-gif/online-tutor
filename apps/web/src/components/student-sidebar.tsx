@@ -74,6 +74,14 @@ function MyBookingsIcon() {
   );
 }
 
+function MessagesIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.4 8.4 0 0 1-1 4 8.5 8.5 0 0 1-7.5 4.5 8.4 8.4 0 0 1-4-1L3 21l2-5.5a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 4.5-7.5 8.4 8.4 0 0 1 4-1h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
 function AiHelperIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -261,6 +269,18 @@ export function StudentSidebar({ open = false, onClose }: { open?: boolean; onCl
           >
             <MyBookingsIcon />
             My bookings
+          </Link>
+          <Link
+            href="/student/messages"
+            onClick={onClose}
+            className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
+              pathname.startsWith("/student/messages")
+                ? "bg-sky-100 font-semibold text-sky-700"
+                : "font-medium text-ink-500 hover:bg-ink-700/5 hover:text-ink-900"
+            }`}
+          >
+            <MessagesIcon />
+            Messages
             {unreadCount > 0 && (
               <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
                 {unreadCount}

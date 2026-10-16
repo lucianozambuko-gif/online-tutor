@@ -14,7 +14,7 @@ import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TutorNotesService } from './tutor-notes.service';
 import { GenerateTutorNoteDto } from './dto/generate-tutor-note.dto';
-import { ShareTutorNoteDto } from './dto/share-tutor-note.dto';
+import { ShareTutorNoteBulkDto } from './dto/share-tutor-note-bulk.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -73,12 +73,12 @@ export class TutorNotesController {
     res.send(pdf);
   }
 
-  @Post(':id/share')
-  share(
+  @Post(':id/share-bulk')
+  shareBulk(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() dto: ShareTutorNoteDto,
+    @Body() dto: ShareTutorNoteBulkDto,
   ) {
-    return this.tutorNotesService.share(user.sub, id, dto.bookingId);
+    return this.tutorNotesService.shareBulk(user.sub, id, dto.studentIds);
   }
 }

@@ -2,25 +2,21 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { getTutorNote, listBookings, shareTutorNote, tutorNotePdfUrl, ApiError, type TutorNote, type Booking } from "@/lib/api";
+import { getTutorNote, shareTutorNoteBulk, tutorNotePdfUrl, ApiError, type TutorNote } from "@/lib/api";
 import { Card, ErrorText, buttonClass } from "@/components/ui";
 import { MarkdownContent } from "@/components/markdown-content";
 import { NoteAttachment } from "@/components/note-attachment";
-import { ShareNoteButton } from "@/components/share-note-button";
+import { ShareTutorNoteMulti } from "@/components/share-tutor-note-multi";
 
 export default function TutorNoteDetailPage({ params }: PageProps<"/tutor/notes/[id]">) {
   const { id } = use(params);
   const [note, setNote] = useState<TutorNote | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getTutorNote(id)
       .then(setNote)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't load this note."));
-    listBookings()
-      .then(setBookings)
-      .catch(() => {});
   }, [id]);
 
   if (error) {
@@ -73,19 +69,15 @@ export default function TutorNoteDetailPage({ params }: PageProps<"/tutor/notes/
         <NoteAttachment note={note} />
       </Card>
 
-      {note.student && (
-        <Card className="mt-4">
-          <h2 className="font-display text-base font-semibold text-ink-900">Share with {note.student.name}</h2>
-          <p className="mt-1 text-sm text-ink-500">Sends this note into the chat of a session you pick.</p>
-          <div className="mt-3">
-            <ShareNoteButton
-              bookings={bookings.filter((b) => b.student.id === note.student?.id)}
-              counterpart="student"
-              onShare={(bookingId) => shareTutorNote(note.id, bookingId).then(() => {})}
-            />
-          </div>
-        </Card>
-      )}
+      <Card className="mt-4">
+        <h2 className="font-display text-base font-semibold text-ink-900">Share with students</h2>
+        <p className="mt-1 text-sm text-ink-500">
+          Sends this note into the chat of each student you pick, from anyone who has booked you.
+        </p>
+        <div className="mt-3">
+          <ShareTutorNoteMulti onShare={(studentIds) => shareTutorNoteBulk(note.id, studentIds)} />
+        </div>
+      </Card>
     </div>
   );
 }
