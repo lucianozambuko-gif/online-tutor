@@ -5,7 +5,7 @@ import { AdminContactChat } from "@/components/admin-contact-chat";
 
 export default function TutorMessagesPage() {
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <Link href="/tutor" className="text-sm text-sky-700 hover:text-sky-800">
         &larr; Back to dashboard
       </Link>

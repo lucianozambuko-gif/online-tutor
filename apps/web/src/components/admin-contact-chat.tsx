@@ -101,7 +101,7 @@ export function AdminContactChat() {
       <h2 className="font-display text-lg font-semibold text-ink-900">Message Lumen</h2>
       <p className="mt-1 text-sm text-ink-500">Get in touch directly with the Lumen team — a human, not the AI helper.</p>
 
-      <div ref={scrollRef} className="mt-4 flex h-64 flex-col gap-2 overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-3">
+      <div ref={scrollRef} className="mt-4 flex h-112 flex-col gap-2 overflow-y-auto rounded-xl border border-ink-700/10 bg-cream/50 p-3">
         {loading ? (
           <p className="text-sm text-ink-500">Loading messages...</p>
         ) : messages.length === 0 ? (
@@ -112,7 +112,7 @@ export function AdminContactChat() {
             return (
               <div
                 key={m.id}
-                className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${
+                className={`max-w-[min(85%,42rem)] rounded-2xl px-3.5 py-2 text-sm ${
                   isMine ? "self-end bg-sky-600 text-white" : "self-start bg-white text-ink-700 shadow-sm"
                 }`}
               >
