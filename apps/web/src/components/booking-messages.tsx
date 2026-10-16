@@ -16,9 +16,26 @@ const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
 function FlagIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z" />
       <path d="M4 22V4" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5" />
     </svg>
   );
 }
@@ -87,6 +104,7 @@ export function BookingMessages({ bookingId, currentUserId }: { bookingId: strin
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -142,6 +160,16 @@ export function BookingMessages({ bookingId, currentUserId }: { bookingId: strin
     setAttachment(file);
   }
 
+  function handleCopy(messageId: string, body: string) {
+    navigator.clipboard
+      .writeText(body)
+      .then(() => {
+        setCopiedId(messageId);
+        setTimeout(() => setCopiedId((id) => (id === messageId ? null : id)), 1500);
+      })
+      .catch(() => {});
+  }
+
   async function handleFlag(messageId: string) {
     setFlaggedIds((prev) => new Set(prev).add(messageId));
     try {
@@ -171,53 +199,74 @@ export function BookingMessages({ bookingId, currentUserId }: { bookingId: strin
                 const isMine = m.sender.id === currentUserId;
                 const alreadyFlagged = m.flagged || flaggedIds.has(m.id);
                 return (
-                  <div key={m.id} className={`group flex items-end gap-2 ${isMine ? "flex-row-reverse" : ""}`}>
-                    {!isMine && (
-                      <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-700">
-                        {initials(m.sender.name)}
-                      </span>
-                    )}
+                  <div key={m.id} className={`group flex flex-col gap-1 ${isMine ? "items-end" : "items-start"}`}>
+                    <div className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : ""}`}>
+                      {!isMine && (
+                        <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-700">
+                          {initials(m.sender.name)}
+                        </span>
+                      )}
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                          isMine ? "bg-sky-600 text-white" : "bg-white text-ink-700 shadow-sm"
+                        }`}
+                      >
+                        {m.attachmentData &&
+                          (m.attachmentMimeType?.startsWith("image/") ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
+                              alt={m.attachmentName ?? "Attachment"}
+                              className="mb-1.5 max-h-48 rounded-lg border border-white/20 object-contain"
+                            />
+                          ) : (
+                            <a
+                              href={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
+                              download={m.attachmentName ?? undefined}
+                              className={`mb-1.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                                isMine ? "border-white/25 text-white/90 hover:text-white" : "border-ink-700/15 text-ink-500 hover:text-ink-900"
+                              }`}
+                            >
+                              <DocumentIcon />
+                              <span className="truncate">{m.attachmentName ?? "Attachment"}</span>
+                            </a>
+                          ))}
+                        {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+                        <span className={`mt-1 block text-[11px] ${isMine ? "text-white/70" : "text-ink-300"}`}>
+                          {formatTime(m.sentAt)}
+                        </span>
+                      </div>
+                    </div>
                     <div
-                      className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
-                        isMine ? "bg-sky-600 text-white" : "bg-white text-ink-700 shadow-sm"
+                      className={`flex items-center gap-0.5 text-ink-300 opacity-0 transition group-hover:opacity-100 ${
+                        isMine ? "pr-1" : "pl-9"
                       }`}
                     >
-                      {m.attachmentData &&
-                        (m.attachmentMimeType?.startsWith("image/") ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
-                            alt={m.attachmentName ?? "Attachment"}
-                            className="mb-1.5 max-h-48 rounded-lg border border-white/20 object-contain"
-                          />
-                        ) : (
-                          <a
-                            href={`data:${m.attachmentMimeType};base64,${m.attachmentData}`}
-                            download={m.attachmentName ?? undefined}
-                            className={`mb-1.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
-                              isMine ? "border-white/25 text-white/90 hover:text-white" : "border-ink-700/15 text-ink-500 hover:text-ink-900"
-                            }`}
-                          >
-                            <DocumentIcon />
-                            <span className="truncate">{m.attachmentName ?? "Attachment"}</span>
-                          </a>
-                        ))}
-                      {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
-                      <div className={`mt-1 flex items-center gap-2 text-[11px] ${isMine ? "text-white/70" : "text-ink-300"}`}>
-                        <span>{formatTime(m.sentAt)}</span>
-                        {!isMine && (
-                          <button
-                            type="button"
-                            onClick={() => handleFlag(m.id)}
-                            disabled={alreadyFlagged}
-                            title="Report this message"
-                            className="inline-flex items-center gap-1 opacity-0 transition hover:text-red-600 group-hover:opacity-100 disabled:opacity-60"
-                          >
-                            <FlagIcon />
-                            {alreadyFlagged ? "Reported" : "Report"}
-                          </button>
-                        )}
-                      </div>
+                      {m.body && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(m.id, m.body!)}
+                          aria-label="Copy message"
+                          title="Copy"
+                          className="rounded-md p-1.5 transition hover:bg-ink-700/5 hover:text-ink-700"
+                        >
+                          {copiedId === m.id ? <CheckIcon /> : <CopyIcon />}
+                        </button>
+                      )}
+                      {!isMine && (
+                        <button
+                          type="button"
+                          onClick={() => handleFlag(m.id)}
+                          disabled={alreadyFlagged}
+                          aria-label="Report this message"
+                          title={alreadyFlagged ? "Reported" : "Report"}
+                          className={`rounded-md p-1.5 transition hover:bg-ink-700/5 disabled:opacity-60 ${
+                            alreadyFlagged ? "text-red-600" : "hover:text-red-600"
+                          }`}
+                        >
+                          <FlagIcon />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
