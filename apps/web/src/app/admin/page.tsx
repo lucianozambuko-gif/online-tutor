@@ -42,7 +42,7 @@ import {
   type AdminStats,
   type AdminFlaggedMessage,
 } from "@/lib/api";
-import { Card, ErrorText, StatusBadge, buttonClass } from "@/components/ui";
+import { Card, ErrorText, StatusBadge, buttonClass, inputClass } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { AdminMessagesPanel } from "@/components/admin-messages-panel";
 
@@ -160,17 +160,14 @@ export default function AdminDashboard() {
   useEffect(loadBookings, []);
 
   const [settingRecordingId, setSettingRecordingId] = useState<string | null>(null);
+  const [recordingDrafts, setRecordingDrafts] = useState<Record<string, string>>({});
 
-  async function handleSetRecordingUrl(booking: Booking) {
-    const url = window.prompt(
-      `Test-only: paste a video URL to attach as the recording for "${booking.subject}". This simulates the real 8x8 recording webhook, which isn't wired up yet.`,
-      booking.recordingUrl ?? "",
-    );
-    if (!url) return;
-    setSettingRecordingId(booking.id);
+  async function handleSetRecordingUrl(bookingId: string, url: string) {
+    if (!url.trim()) return;
+    setSettingRecordingId(bookingId);
     setBookingsError(null);
     try {
-      await setBookingRecordingUrl(booking.id, url);
+      await setBookingRecordingUrl(bookingId, url.trim());
       setBookingsLoading(true);
       loadBookings();
     } catch (err) {
@@ -972,6 +969,10 @@ export default function AdminDashboard() {
         <div>
           <h2 className="font-display text-lg font-semibold text-ink-900">Bookings</h2>
           <p className="mt-1 text-sm text-ink-500">Every session booked on the platform, most recent first.</p>
+          <p className="mt-1 text-xs text-ink-300">
+            Recording is test-only for now — there&apos;s no real capture pipeline yet, so paste a video URL to
+            simulate one. Press Enter or Save to attach it.
+          </p>
         </div>
 
         {bookingsError && (
@@ -1010,16 +1011,30 @@ export default function AdminDashboard() {
                   </td>
                   <td className="py-3 pr-4">
                     {b.mode === "ONLINE" && (
-                      <div className="flex flex-col items-start gap-1">
-                        {b.recordingUrl && <span className="text-xs text-emerald-600 dark:text-emerald-400">Set</span>}
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          placeholder="Test video URL..."
+                          value={recordingDrafts[b.id] ?? b.recordingUrl ?? ""}
+                          onChange={(e) => setRecordingDrafts((prev) => ({ ...prev, [b.id]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSetRecordingUrl(b.id, recordingDrafts[b.id] ?? b.recordingUrl ?? "");
+                          }}
+                          className={`${inputClass} w-44 px-2 py-1 text-xs`}
+                        />
                         <button
                           type="button"
-                          disabled={settingRecordingId === b.id}
-                          onClick={() => handleSetRecordingUrl(b)}
-                          className={buttonClass("outline", "px-2.5 py-1 text-xs")}
+                          disabled={
+                            settingRecordingId === b.id ||
+                            !(recordingDrafts[b.id] ?? b.recordingUrl ?? "").trim() ||
+                            (recordingDrafts[b.id] ?? b.recordingUrl ?? "") === (b.recordingUrl ?? "")
+                          }
+                          onClick={() => handleSetRecordingUrl(b.id, recordingDrafts[b.id] ?? b.recordingUrl ?? "")}
+                          className={buttonClass("outline", "shrink-0 px-2.5 py-1 text-xs")}
                         >
-                          {b.recordingUrl ? "Replace URL (test)" : "Set URL (test)"}
+                          {settingRecordingId === b.id ? "Saving..." : "Save"}
                         </button>
+                        {b.recordingUrl && <span className="shrink-0 text-xs text-emerald-600 dark:text-emerald-400">Set</span>}
                       </div>
                     )}
                   </td>
