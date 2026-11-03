@@ -731,7 +731,7 @@ export default function AdminDashboard() {
                               className="w-28 rounded-lg border border-ink-700/15 bg-white px-2 py-1.5 text-xs text-ink-900 outline-none focus:border-sky-400"
                             />
                           </div>
-                          <div className="min-w-[160px] flex-1">
+                          <div className="min-w-40 flex-1">
                             <label htmlFor={`refund-reason-${payment.id}`} className="block text-[11px] text-ink-300">
                               Reason
                             </label>
