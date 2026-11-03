@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { listBookings, acceptBooking, declineBooking, ApiError, type Booking } from "@/lib/api";
-import { Card, buttonClass, ErrorText } from "@/components/ui";
+import { Card, buttonClass, ErrorText, StatusBadge } from "@/components/ui";
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -74,12 +74,27 @@ export default function TutorRequestsPage() {
                     {formatWhen(b.scheduledAt)} · {b.durationMinutes} min · {b.mode === "ONLINE" ? "Online" : "In person"}
                   </p>
                   <p className="mt-0.5 text-xs text-ink-300">{b.student.email}</p>
+                  {b.payment && (
+                    <div className="mt-1.5">
+                      <StatusBadge status={b.payment.status} />
+                      {b.payment.status !== "PAID" && (
+                        <span className="ml-1.5 text-xs text-ink-300">
+                          not paid yet — the slot is only held for a short window
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button disabled={busy} onClick={() => respond(b.id, acceptBooking)} className={buttonClass("primary")}>
                     Accept
                   </button>
-                  <button disabled={busy} onClick={() => respond(b.id, declineBooking)} className={buttonClass("danger")}>
+                  <button
+                    disabled={busy}
+                    onClick={() => respond(b.id, declineBooking)}
+                    className={buttonClass("danger")}
+                    title={b.payment?.status === "PAID" ? "This will automatically refund the student" : undefined}
+                  >
                     Decline
                   </button>
                 </div>

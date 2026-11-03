@@ -20,12 +20,20 @@ import {
   MIN_HOURLY_RATE_ZAR,
 } from '../common/pricing';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { PaymentsService } from '../payments/payments.service';
 
 function getCommissionPercent(): number {
   const raw = process.env.PLATFORM_COMMISSION_PERCENT;
   const parsed = raw ? Number(raw) : DEFAULT_COMMISSION_PERCENT;
   return Number.isFinite(parsed) ? parsed : DEFAULT_COMMISSION_PERCENT;
 }
+
+// Booking is pay-to-request: the slot is held from the moment a student
+// submits the request, before they've actually paid. If they abandon
+// checkout, this is how long the hold lasts before another student can book
+// that same slot — long enough to finish a PayFast redirect, short enough
+// that a tutor's calendar isn't blocked indefinitely by a no-show payment.
+const UNPAID_HOLD_MINUTES = 30;
 
 const BOOKING_INCLUDE = {
   student: { select: { id: true, name: true, email: true } },
@@ -39,6 +47,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
+    private readonly payments: PaymentsService,
   ) {}
 
   // Students only ever see the actual recording link once they've paid for
@@ -80,15 +89,28 @@ export class BookingsService {
 
     const start = new Date(dto.scheduledAt);
     const end = new Date(start.getTime() + dto.durationMinutes * 60_000);
+    const unpaidHoldCutoff = new Date(
+      Date.now() - UNPAID_HOLD_MINUTES * 60_000,
+    );
     // Prisma can't compare scheduledAt + durationMinutes against a dynamic
     // value in a single where clause, so pull the small set of candidates
     // that could overlap (start before this one ends) and check each one's
-    // own end time in memory.
+    // own end time in memory. A still-unpaid PENDING booking older than the
+    // hold window is an abandoned checkout, not a real hold on the slot.
     const candidates = await this.prisma.booking.findMany({
       where: {
         tutorId: dto.tutorId,
-        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
         scheduledAt: { lt: end },
+        OR: [
+          { status: BookingStatus.CONFIRMED },
+          {
+            status: BookingStatus.PENDING,
+            OR: [
+              { payment: { status: PaymentStatus.PAID } },
+              { createdAt: { gte: unpaidHoldCutoff } },
+            ],
+          },
+        ],
       },
       select: { scheduledAt: true, durationMinutes: true },
     });
@@ -231,9 +253,20 @@ export class BookingsService {
         `Booking is ${booking.status.toLowerCase()}, not pending`,
       );
     }
-    // A student can pay before the tutor responds, so a payment may already be
-    // sitting here — same guard/cleanup as cancel() to avoid an orphaned PAID
-    // payment on a declined booking, or leaving a PENDING one payable forever.
+    // Booking is pay-to-request, so the student has very likely already paid
+    // by the time the tutor sees this request — refund it automatically
+    // rather than leaving the student out of pocket for a session that never
+    // happened. (cancel() deliberately does NOT do this: that's for either
+    // side backing out of an already-confirmed session, which should go
+    // through a dispute/admin instead of an automatic refund.)
+    if (booking.payment?.status === PaymentStatus.PAID) {
+      await this.payments.refundForDeclinedBooking(booking.payment.id, tutorId);
+      return this.prisma.booking.update({
+        where: { id: booking.id },
+        data: { status: BookingStatus.CANCELLED },
+        include: BOOKING_INCLUDE,
+      });
+    }
     return this.cancelAndClosePayment(booking);
   }
 

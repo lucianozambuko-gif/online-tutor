@@ -174,7 +174,11 @@ export default function TutorProfilePage({ params }: PageProps<"/student/tutors/
 
         <div className="space-y-6">
           <TutorMessagesSection tutorId={tutor.id} />
-          <TutorBookingForm tutorId={tutor.id} subjects={tutor.tutorProfile.subjects} />
+          <TutorBookingForm
+            tutorId={tutor.id}
+            subjects={tutor.tutorProfile.subjects}
+            hourlyRate={Number(tutor.tutorProfile.hourlyRate)}
+          />
           <TutorBusySlots tutorId={tutor.id} />
         </div>
       </div>

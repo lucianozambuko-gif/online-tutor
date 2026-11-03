@@ -181,6 +181,34 @@ export class PaymentsService {
   // in PayFast's sandbox, which rejects refund calls outright; it needs to be
   // exercised against live credentials before being trusted in production.
   async refund(adminId: string, paymentId: string, dto: RefundPaymentDto) {
+    return this.applyRefund(paymentId, dto.amount, dto.reason, {
+      actorId: adminId,
+      action: (isFull) =>
+        isFull ? 'PAYMENT_REFUNDED' : 'PAYMENT_PARTIALLY_REFUNDED',
+    });
+  }
+
+  // Booking flow is pay-to-request: a student pays when they submit a
+  // booking, before the tutor has accepted it. If the tutor declines, that
+  // payment needs to come straight back rather than requiring an admin to
+  // notice and refund it manually — same PayFast call as the admin path
+  // above, just system-triggered with a fixed reason and always the full
+  // remaining amount. Same untested-in-sandbox caveat applies.
+  async refundForDeclinedBooking(paymentId: string, tutorId: string) {
+    return this.applyRefund(
+      paymentId,
+      undefined,
+      'Tutor declined the booking',
+      { actorId: tutorId, action: () => 'PAYMENT_AUTO_REFUNDED_DECLINE' },
+    );
+  }
+
+  private async applyRefund(
+    paymentId: string,
+    amountRand: number | undefined,
+    reason: string,
+    audit: { actorId: string; action: (isFull: boolean) => string },
+  ) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
     });
@@ -211,7 +239,7 @@ export class PaymentsService {
       );
     }
 
-    const refundAmountRand = dto.amount ?? remaining;
+    const refundAmountRand = amountRand ?? remaining;
     if (refundAmountRand > remaining) {
       throw new BadRequestException(
         `You can refund at most R${remaining.toFixed(2)} more on this payment`,
@@ -227,7 +255,7 @@ export class PaymentsService {
       },
       {
         amount: Math.round(refundAmountRand * 100),
-        reason: dto.reason,
+        reason,
       },
     );
 
@@ -251,13 +279,13 @@ export class PaymentsService {
           ? PaymentStatus.REFUNDED
           : PaymentStatus.PARTIALLY_REFUNDED,
         refundedAmount: newRefundedAmount,
-        refundReason: dto.reason,
+        refundReason: reason,
         refundedAt: new Date(),
       },
     });
     await this.auditLog.record(
-      adminId,
-      isFullyRefunded ? 'PAYMENT_REFUNDED' : 'PAYMENT_PARTIALLY_REFUNDED',
+      audit.actorId,
+      audit.action(isFullyRefunded),
       'Payment',
       paymentId,
     );
